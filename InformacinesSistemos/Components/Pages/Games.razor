@@ -32,6 +32,11 @@
     void CreateGame() => NavigationManager.NavigateTo("/game/new");
     void AddToCart() => NavigationManager.NavigateTo("/mygames");
 
+    public Games(NavigationManager navigationManager)
+    {
+        NavigationManager = navigationManager;
+    }
+
     [Inject]
     NavigationManager NavigationManager { get; set; }
 }
