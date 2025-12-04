@@ -1,27 +1,99 @@
 ﻿@page "/users"
+@using InformacinesSistemos.Models
+@using Microsoft.AspNetCore.Components.Authorization
+@inject InformacinesSistemos.Services.IUserService UserService
+@inject NavigationManager Nav
 
-<h3>Naudotojų valdymas</h3>
+<PageTitle>Naudotojų peržiūra</PageTitle>
 
-<table class="table table-striped">
-    <thead>
-        <tr>
-            <th>ID</th>
-            <th>Vardas</th>
-            <th>El. paštas</th>
-            <th>Rolė</th>
-            <th>Veiksmai</th>
-        </tr>
-    </thead>
-    <tbody>
-        <tr>
-            <td>1</td>
-            <td>Jonas</td>
-            <td>jonas@example.com</td>
-            <td>Vartotojas</td>
-            <td>
-                <button class="btn btn-warning btn-sm me-2">Apriboti</button>
-                <button class="btn btn-danger btn-sm">Ištrinti</button>
-            </td>
-        </tr>
-    </tbody>
-</table>
+<AuthorizeView Roles="Moderator,Admin">
+    <Authorized>
+        <h2>Naudotojų peržiūra ir valdymas</h2>
+
+        @if (users is null)
+        {
+            <p>Kraunama...</p>
+        }
+        else if (!users.Any())
+        {
+            <p>Nerasta naudotojų.</p>
+        }
+        else
+        {
+            <table class="users-table">
+                <thead>
+                    <tr>
+                        <th>Vardas</th>
+                        <th>El. paštas</th>
+                        <th>Rolė</th>
+                        <th>Paskyros būsena</th>
+                        <th>Registracijos data</th>
+                        <th>Veiksmai</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var u in users)
+                    {
+                        <tr>
+                            <td>@u.Vardas @u.Pavarde</td>
+                            <td>@u.ElPastas</td>
+                            <td>@u.Role</td>
+                            <td>@u.PaskirosBusena</td>
+                            <td>@u.RegistracijosData.ToString("yyyy-MM-dd")</td>
+                            <td>
+                                @if (u.PaskirosBusena == "Aktyvi")
+                                {
+                                    <button class="outline-btn small"
+                                            @onclick='() => ChangeStatus(u.NaudotojasId, "Blokuota")'>
+                                        Blokuoti
+                                    </button>
+                                }
+                                else
+                                {
+                                    <button class="outline-btn small"
+                                            @onclick='() => ChangeStatus(u.NaudotojasId, "Aktyvi")'>
+                                        Atblokuoti
+                                    </button>
+                                }
+
+                                <select class="role-select"
+                                        value="@u.Role"
+                                        @onchange='e => ChangeRole(u.NaudotojasId, e.Value?.ToString() ?? "User")'>
+                                    <option value="User">Naudotojas</option>
+                                    <option value="Moderator">Moderatorius</option>
+                                    <option value="Admin">Administratorius</option>
+                                </select>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </Authorized>
+    <NotAuthorized>
+        <p>Šis puslapis prieinamas tik moderatoriams ir administratoriams.</p>
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+    private List<Naudotojas>? users;
+
+    protected override async Task OnInitializedAsync()
+    {
+        users = await UserService.GetAllAsync();
+    }
+
+    private async Task ChangeStatus(int naudotojasId, string status)
+    {
+        await UserService.UpdateStatusAsync(naudotojasId, status);
+        users = await UserService.GetAllAsync();
+        StateHasChanged();
+    }
+
+    private async Task ChangeRole(int naudotojasId, string newRole)
+    {
+        await UserService.UpdateRoleAsync(naudotojasId, newRole);
+        users = await UserService.GetAllAsync();
+        StateHasChanged();
+    }
+}

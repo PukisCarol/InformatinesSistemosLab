@@ -1,0 +1,84 @@
+﻿@page "/complaints"
+@rendermode InteractiveServer
+@using InformacinesSistemos.Models
+
+<PageTitle>Nusiskundimai</PageTitle>
+
+<h2>Pateikti nusiskundimą</h2>
+
+<p>
+    Nusiskundimai bus užfiksuoti sistemoje ir (pagal ataskaitą) persiųsti el. paštu administratoriui.
+    Šiuo metu el. pašto siuntimas imituojamas.
+</p>
+
+<div class="complaints-form">
+    <input placeholder="Tema"
+           @bind="tema" />
+
+    <textarea placeholder="Aprašykite problemą..."
+              @bind="tekstas"></textarea>
+
+    <button class="primary-btn" @onclick="Submit" disabled="@IsSubmitDisabled">
+        Pateikti nusiskundimą
+    </button>
+
+    @if (!string.IsNullOrEmpty(successMessage))
+    {
+        <p class="success-msg">@successMessage</p>
+    }
+</div>
+
+@if (submitted.Any())
+{
+    <h3>Jūsų pateikti nusiskundimai (šios sesijos metu)</h3>
+
+    <table class="complaints-table">
+        <thead>
+            <tr>
+                <th>Data</th>
+                <th>Tema</th>
+                <th>Statusas</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var c in submitted)
+            {
+                <tr>
+                    <td>@c.Data.ToString("yyyy-MM-dd HH:mm")</td>
+                    <td>@c.Tema</td>
+                    <td>@c.Statusas</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private string tema = string.Empty;
+    private string tekstas = string.Empty;
+    private string successMessage = string.Empty;
+
+    private List<Nusiskundimas> submitted = new();
+
+    private bool IsSubmitDisabled => string.IsNullOrWhiteSpace(tema) || string.IsNullOrWhiteSpace(tekstas);
+
+    private void Submit()
+    {
+        var complaint = new Nusiskundimas
+        {
+            NusiskundimoId = submitted.Count + 1,
+            Data = DateTime.Now,
+            Tema = tema,
+            NusiskundimoTekstas = tekstas,
+            Statusas = "Naujas"
+        };
+
+        submitted.Add(complaint);
+
+        // Čia vėliau galėtume iškviesti el. pašto siuntimą
+        successMessage = "Nusiskundimas užregistruotas ir būtų išsiųstas administratoriui el. paštu.";
+
+        tema = string.Empty;
+        tekstas = string.Empty;
+    }
+}

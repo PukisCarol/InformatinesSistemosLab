@@ -1,4 +1,7 @@
-﻿<!DOCTYPE html>
+﻿@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components.Web
+
+<!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -14,7 +17,9 @@
 </head>
 
 <body>
-    <Routes />
+    <!-- VISI maršrutai interaktyvūs ir gauna AuthenticationState iš AddCascadingAuthenticationState -->
+    <Routes @rendermode="InteractiveServer" />
+
     <script src="_framework/blazor.web.js"></script>
 </body>
 

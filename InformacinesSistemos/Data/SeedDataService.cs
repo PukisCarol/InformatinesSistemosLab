@@ -4,13 +4,13 @@ using InformacinesSistemos.Models;
 namespace InformacinesSistemos.Data
 {
     // Simple in-memory seed data service to simulate DB
-    public class SeedDataService
+    public class IGameServices
     {
         public List<Game> Games { get; } = new List<Game>();
         public List<User> Users { get; } = new List<User>();
         public List<Game> Cart { get; } = new List<Game>();
 
-        public SeedDataService()
+        public IGameServices()
         {
             Users.Add(new User { Id = 1, Name = "Admin", Email = "admin@example.com", Role = "Admin" });
             Users.Add(new User { Id = 2, Name = "Jonas", Email = "jonas@example.com", Role = "User" });

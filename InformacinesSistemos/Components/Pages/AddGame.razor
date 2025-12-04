@@ -1,0 +1,242 @@
+﻿@page "/mygames/add"
+@using InformacinesSistemos.Models
+@using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.AspNetCore.Components.Authorization
+@inject InformacinesSistemos.Services.IGameService GameService
+@inject AuthenticationStateProvider AuthStateProvider
+@inject NavigationManager Nav
+
+<PageTitle>Pridėti naują žaidimą</PageTitle>
+
+<h2>Pridėti naują žaidimą</h2>
+
+@if (!isAuthenticated)
+{
+    <p>Norėdami pridėti žaidimą, turite prisijungti.</p>
+    <a href="/login" class="link-btn">Prisijungti</a>
+}
+else
+{
+    <p>
+        Naujas žaidimas bus priskirtas jūsų paskyrai (<strong>@currentUserEmail</strong>).
+    </p>
+
+    <EditForm Model="model" OnValidSubmit="HandleValidSubmit">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+
+        <div class="addgame-form">
+            <label>
+                Pavadinimas / aprašymas
+                <InputText @bind-Value="model.Aprasymas" />
+            </label>
+
+            <label>
+                Kūrėjas
+                <InputText @bind-Value="model.Kurejas" />
+            </label>
+
+            <label>
+                Kaina (€)
+                <InputNumber TValue="double?" @bind-Value="model.Kaina" />
+            </label>
+
+            <label>
+                Reitingas (1–5)
+                <InputNumber TValue="double?" @bind-Value="model.Reitingas" />
+            </label>
+
+            <label>
+                Amžiaus cenzas
+                <InputNumber TValue="int?" @bind-Value="model.AmziausCenzas" />
+            </label>
+
+
+            <label>
+                Žaidėjų skaičius
+                <InputText @bind-Value="model.ZaidejuSkaicius" />
+            </label>
+
+            <label>
+                Žaidimo tipas
+                <select @bind="model.Tipas">
+                    <option value="Kompiuterinis">Kompiuterinis žaidimas</option>
+                    <option value="Stalo">Stalo žaidimas</option>
+                </select>
+            </label>
+
+            @if (model.Tipas == "Kompiuterinis")
+            {
+                <div class="sub-box">
+                    <h4>Kompiuterinio žaidimo duomenys</h4>
+                    <label>
+                        OS
+                        <InputText @bind-Value="pc.OS" />
+                    </label>
+                    <label>
+                        Platforma
+                        <InputText @bind-Value="pc.Platforma" />
+                    </label>
+                    <label>
+                        Užimama vieta diske (GB)
+                        <InputNumber TValue="double?" @bind-Value="pc.UzimamaVietaDiske" />
+                    </label>
+
+                    <label>
+                        Sisteminiai reikalavimai
+                        <InputText @bind-Value="pc.SisteminiaiReikalavimai" />
+                    </label>
+                </div>
+            }
+            else if (model.Tipas == "Stalo")
+            {
+                <div class="sub-box">
+                    <h4>Stalo žaidimo duomenys</h4>
+                    <label>
+                        Dėžės ilgis (cm)
+                        <InputNumber TValue="int?" @bind-Value="board.Ilgis" />
+                    </label>
+                    <label>
+                        Dėžės plotis (cm)
+                        <InputNumber TValue="int?" @bind-Value="board.Plotis" />
+                    </label>
+                    <label>
+                        Dėžės aukštis (cm)
+                        <InputNumber TValue="int?" @bind-Value="board.Aukstis" />
+                    </label>
+                    <label>
+                        Žaidimo trukmė (min)
+                        <InputNumber TValue="int?" @bind-Value="board.Trukme" />
+                    </label>
+                    <label>
+                        Svoris (kg)
+                        <InputNumber TValue="double?" @bind-Value="board.Svoris" />
+                    </label>
+
+                    <label>
+                        Svoris (kg)
+                        <InputNumber @bind-Value="board.Svoris" />
+                    </label>
+                </div>
+            }
+
+            <div class="form-actions">
+                <button type="button" class="outline-btn" @onclick="GoBack">Atšaukti</button>
+                <button type="submit" class="primary-btn">Išsaugoti</button>
+            </div>
+        </div>
+    </EditForm>
+
+    @if (!string.IsNullOrEmpty(successMessage))
+    {
+        <p class="success-msg">@successMessage</p>
+    }
+}
+
+@code {
+    private bool isAuthenticated;
+    private string? currentUserEmail;
+
+    private GameFormModel model = new();
+    private PcFormModel pc = new();
+    private BoardFormModel board = new();
+    private string? successMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        isAuthenticated = user.Identity?.IsAuthenticated ?? false;
+        currentUserEmail = user.Identity?.Name;
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        if (!isAuthenticated || string.IsNullOrWhiteSpace(currentUserEmail))
+            return;
+
+        var owner = new Naudotojas
+        {
+            NaudotojasId = 999,
+            ElPastas = currentUserEmail,
+            Vardas = "Naudotojas"
+        };
+
+        var game = new Zaidimas
+        {
+            Kaina = model.Kaina ?? 0,
+            Reitingas = model.Reitingas ?? 0,
+            AmziausCenzas = model.AmziausCenzas ?? 0,
+            Kurejas = model.Kurejas,
+            ZaidejuSkaicius = model.ZaidejuSkaicius,
+            Aprasymas = model.Aprasymas,
+            ZanroId = 0,
+            Zanras = null,
+            SavininkoId = owner.NaudotojasId,
+            Savininkas = owner
+        };
+
+        if (model.Tipas == "Kompiuterinis")
+        {
+            game.Kompiuterinis = new KompiuterinisZaidimas
+            {
+                OS = pc.OS,
+                Platforma = pc.Platforma,
+                UzimamaVietaDiske = pc.UzimamaVietaDiske ?? 0,
+                SisteminiaiReikalavimai = pc.SisteminiaiReikalavimai
+            };
+            game.Stalo = null;
+        }
+        else if (model.Tipas == "Stalo")
+        {
+            game.Stalo = new StaloZaidimas
+            {
+                Ilgis = board.Ilgis ?? 0,
+                Plotis = board.Plotis ?? 0,
+                Aukstis = board.Aukstis ?? 0,
+                Trukme = board.Trukme ?? 0,
+                Svoris = board.Svoris ?? 0
+            };
+            game.Kompiuterinis = null;
+        }
+
+        var created = await GameService.AddAsync(game);
+
+        successMessage = $"Žaidimas pridėtas (ID: {created.ZaidimoId}).";
+        Nav.NavigateTo("/mygames");
+    }
+
+    private void GoBack()
+    {
+        Nav.NavigateTo("/mygames");
+    }
+
+    private class GameFormModel
+    {
+        public string Aprasymas { get; set; } = string.Empty;
+        public string Kurejas { get; set; } = string.Empty;
+        public double? Kaina { get; set; } = null;
+        public double? Reitingas { get; set; } = 5;
+        public int? AmziausCenzas { get; set; } = null;
+        public string ZaidejuSkaicius { get; set; } = string.Empty;
+        public string Tipas { get; set; } = "Kompiuterinis";
+    }
+
+
+    private class PcFormModel
+    {
+        public string OS { get; set; } = string.Empty;
+        public string Platforma { get; set; } = string.Empty;
+        public double? UzimamaVietaDiske { get; set; } = null;
+        public string SisteminiaiReikalavimai { get; set; } = string.Empty;
+    }
+
+    private class BoardFormModel
+    {
+        public int? Ilgis { get; set; }
+        public int? Plotis { get; set; }
+        public int? Aukstis { get; set; }
+        public int? Trukme { get; set; }
+        public double? Svoris { get; set; }
+    }
+}

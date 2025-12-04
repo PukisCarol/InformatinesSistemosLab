@@ -1,7 +1,87 @@
 ﻿@page "/cart"
+@rendermode InteractiveServer
+@using InformacinesSistemos.Models
+@inject InformacinesSistemos.Services.ICartService CartService
+@inject NavigationManager Nav
+
 <PageTitle>Krepšelis</PageTitle>
 
-<section class="container py-4">
-    <h1>Krepšelis</h1>
-    <p>Čia bus krepšelis.</p>
-</section>
+<h2>Krepšelis</h2>
+
+@if (!CartService.Items.Any())
+{
+    <p>Jūsų krepšelis tuščias.</p>
+
+    <button class="primary-btn" @onclick="GoToGames">
+        Peržiūrėti žaidimus
+    </button>
+}
+else
+{
+    <table class="cart-table">
+        <thead>
+            <tr>
+                <th>Žaidimas</th>
+                <th>Kūrėjas</th>
+                <th>Kaina</th>
+                <th>Kiekis</th>
+                <th>Suma</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in CartService.Items)
+            {
+                var game = item.Zaidimas;
+                <tr>
+                    <td>@(game?.Aprasymas ?? "Žaidimas")</td>
+                    <td>@(game?.Kurejas ?? "-")</td>
+                    <td>@(game?.Kaina.ToString("0.00") ?? "0.00") €</td>
+                    <td>@item.Quantity</td>
+                    <td>@(((game?.Kaina ?? 0) * item.Quantity).ToString("0.00")) €</td>
+                    <td>
+                        <button class="link-btn remove-btn" @onclick="() => Remove(item.ZaidimoId)">
+                            Pašalinti
+                        </button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    <div class="cart-summary">
+        <span>Iš viso:</span>
+        <span class="cart-total">@CartService.GetTotal().ToString("0.00") €</span>
+    </div>
+
+    <div class="cart-actions">
+        <button class="outline-btn" @onclick="Clear">
+            Išvalyti krepšelį
+        </button>
+        <button class="primary-btn" @onclick="GoToCheckout">
+            Tęsti apmokėjimą
+        </button>
+    </div>
+}
+
+@code {
+    private void Remove(int gameId)
+    {
+        CartService.Remove(gameId);
+    }
+
+    private void Clear()
+    {
+        CartService.Clear();
+    }
+
+    private void GoToCheckout()
+    {
+        Nav.NavigateTo("/checkout");
+    }
+
+    private void GoToGames()
+    {
+        Nav.NavigateTo("/games");
+    }
+}

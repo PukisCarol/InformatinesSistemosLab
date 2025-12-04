@@ -1,6 +1,80 @@
 ﻿@page "/feedback"
+@rendermode InteractiveServer
+@using InformacinesSistemos.Models
 
-<h3>Atsiliepimai</h3>
+<PageTitle>Atsiliepimai</PageTitle>
 
-<textarea class="form-control mb-3" rows="4" placeholder="Parašykite savo atsiliepimą..."></textarea>
-<button class="btn btn-success">Pateikti</button>
+<h2>Pateikti atsiliepimą apie žaidimą</h2>
+
+<div class="feedback-form">
+    <input placeholder="Žaidimo pavadinimas"
+           @bind="zaidimoPavadinimas" />
+
+    <input type="number"
+           min="1" max="5"
+           @bind="ivertinimas"
+           placeholder="Įvertinimas (1-5)" />
+
+    <textarea placeholder="Jūsų atsiliepimas..."
+              @bind="tekstas"></textarea>
+
+    <button class="primary-btn" @onclick="Submit" disabled="@IsSubmitDisabled">
+        Pateikti atsiliepimą
+    </button>
+
+    @if (!string.IsNullOrEmpty(successMessage))
+    {
+        <p class="success-msg">@successMessage</p>
+    }
+</div>
+
+@if (submitted.Any())
+{
+    <h3>Pateikti atsiliepimai (šios sesijos metu)</h3>
+
+    <ul class="feedback-list">
+        @foreach (var f in submitted)
+        {
+            <li>
+                <strong>@zaidimoPavadinimas</strong>
+                <span>@f.Data.ToString("yyyy-MM-dd")</span>
+                <span>@($"Įvertinimas: {f.Ivertinimas}/5")</span>
+                <p>@f.AtsiliepimoTekstas</p>
+            </li>
+        }
+    </ul>
+}
+
+@code {
+    private string zaidimoPavadinimas = string.Empty;
+    private int ivertinimas = 5;
+    private string tekstas = string.Empty;
+    private string successMessage = string.Empty;
+
+    private readonly List<Atsiliepimas> submitted = new();
+
+    private bool IsSubmitDisabled =>
+        string.IsNullOrWhiteSpace(zaidimoPavadinimas) ||
+        string.IsNullOrWhiteSpace(tekstas) ||
+        ivertinimas < 1 || ivertinimas > 5;
+
+    private void Submit()
+    {
+        var feedback = new Atsiliepimas
+        {
+            AtsiliepimoId = submitted.Count + 1,
+            Data = DateTime.Now,
+            AtsiliepimoTekstas = tekstas,
+            Ivertinimas = ivertinimas
+            // ZaidimoId ir NaudotojasId vėliau užpildysim iš DB / login
+        };
+
+        submitted.Add(feedback);
+
+        successMessage = "Atsiliepimas sėkmingai išsaugotas (šiuo metu tik sistemoje, be tikros DB).";
+
+        tekstas = string.Empty;
+        zaidimoPavadinimas = string.Empty;
+        ivertinimas = 5;
+    }
+}

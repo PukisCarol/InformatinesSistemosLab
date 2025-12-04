@@ -1,42 +1,152 @@
 ﻿@page "/games"
+@rendermode InteractiveServer
+@using InformacinesSistemos.Models
+@using Microsoft.AspNetCore.WebUtilities
+@inject InformacinesSistemos.Services.IGameService GameService
+@inject NavigationManager Nav
+@inject InformacinesSistemos.Services.ICartService CartService
 
-<h3>Žaidimų sąrašas</h3>
 
-<p>Čia matysi visus stalo ir kompiuterinius žaidimus, kuriuos galima nuomoti ar pirkti.</p>
+<PageTitle>Žaidimai</PageTitle>
 
-<button class="btn btn-primary me-2" @onclick="CreateGame">+ Paskelbti naują žaidimą</button>
+<h2>Žaidimų katalogas</h2>
 
-<table class="table table-striped mt-3">
-    <thead>
-        <tr>
-            <th>Pavadinimas</th>
-            <th>Kategorija</th>
-            <th>Kaina</th>
-            <th>Veiksmai</th>
-        </tr>
-    </thead>
-    <tbody>
-        <tr>
-            <td>Monopolis</td>
-            <td>Stalo</td>
-            <td>10 €</td>
-            <td>
-                <button class="btn btn-success btn-sm me-2" @onclick="AddToCart">Į krepšelį</button>
-                <NavLink class="btn btn-secondary btn-sm" href="/game/1">Peržiūrėti</NavLink>
-            </td>
-        </tr>
-    </tbody>
-</table>
+<div class="games-filters">
+    <input placeholder="Paieška pagal pavadinimą, kūrėją ar žanrą"
+           @oninput="OnSearchChange" />
+
+    <select @onchange="OnTypeChange" value="@selectedType">
+        <option value="">Visi tipai</option>
+        <option value="pc">Kompiuteriniai žaidimai</option>
+        <option value="board">Stalo žaidimai</option>
+    </select>
+</div>
+
+@if (filteredGames is null)
+{
+    <p>Kraunama...</p>
+}
+else if (!filteredGames.Any())
+{
+    <p>Nerasta žaidimų pagal pasirinktus filtrus.</p>
+}
+else
+{
+    <div class="games-grid">
+        @foreach (var g in filteredGames)
+        {
+            <div class="game-card">
+                <div class="game-header">
+                    <span class="game-type">@GetTypeLabel(g)</span>
+                    <span class="game-price">@g.Kaina.ToString("0.00") €</span>
+                </div>
+                <h5>@g.Aprasymas</h5>
+                <div class="game-meta">
+                    <span>@g.Kurejas</span>
+                    <span>@g.ZaidejuSkaicius žaidėjai</span>
+                    <span>@($"Reitingas: {g.Reitingas:0.0}")</span>
+                </div>
+                <div class="game-actions">
+                    <button class="outline-btn small-btn" @onclick="@(() => Nav.NavigateTo($"/games/{g.ZaidimoId}"))">
+                        Peržiūrėti
+                    </button>
+                    <button class="primary-btn small-btn" @onclick="@(() => AddToCart(g))">
+                        Į krepšelį
+                    </button>
+                </div>
+
+
+            </div>
+        }
+    </div>
+}
 
 @code {
-    void CreateGame() => NavigationManager.NavigateTo("/game/new");
-    void AddToCart() => NavigationManager.NavigateTo("/mygames");
+    private List<Zaidimas>? allGames;
+    private List<Zaidimas>? filteredGames;
 
-    public Games(NavigationManager navigationManager)
+    private string? selectedType;
+    private string searchText = string.Empty;
+
+    protected override async Task OnInitializedAsync()
     {
-        NavigationManager = navigationManager;
+        await LoadGamesFromService();
+        ApplyFilters();
+    }
+    private void AddToCart(Zaidimas game)
+    {
+        CartService.Add(game, 1);
     }
 
-    [Inject]
-    NavigationManager NavigationManager { get; set; }
+    protected override async Task OnParametersSetAsync()
+    {
+        // jei ateisim su ?type=pc ir pan.
+        var uri = Nav.ToAbsoluteUri(Nav.Uri);
+        var query = QueryHelpers.ParseQuery(uri.Query);
+
+        if (query.TryGetValue("type", out var typeValues))
+        {
+            selectedType = typeValues.ToString();
+        }
+
+        if (allGames is null)
+        {
+            await LoadGamesFromService();
+        }
+
+        ApplyFilters();
+    }
+
+    private async Task LoadGamesFromService()
+    {
+        allGames = await GameService.GetAllAsync();
+    }
+
+    private void ApplyFilters()
+    {
+        if (allGames is null)
+            return;
+
+        IEnumerable<Zaidimas> query = allGames;
+
+        if (!string.IsNullOrWhiteSpace(selectedType))
+        {
+            if (selectedType == "pc")
+            {
+                query = query.Where(g => g.Kompiuterinis != null);
+            }
+            else if (selectedType == "board")
+            {
+                query = query.Where(g => g.Stalo != null);
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(searchText))
+        {
+            var t = searchText.Trim();
+            query = query.Where(g =>
+                (g.Aprasymas?.Contains(t, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                (g.Kurejas?.Contains(t, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                (g.Zanras?.Pavadinimas?.Contains(t, StringComparison.OrdinalIgnoreCase) ?? false));
+        }
+
+        filteredGames = query.ToList();
+    }
+
+    private void OnSearchChange(ChangeEventArgs e)
+    {
+        searchText = e.Value?.ToString() ?? string.Empty;
+        ApplyFilters();
+    }
+
+    private void OnTypeChange(ChangeEventArgs e)
+    {
+        selectedType = e.Value?.ToString();
+        ApplyFilters();
+    }
+
+    private static string GetTypeLabel(Zaidimas g)
+        => g.Kompiuterinis != null ? "Kompiuterinis"
+         : g.Stalo != null ? "Stalo"
+                                  : "Kitas";
 }

@@ -1,0 +1,60 @@
+﻿@page "/register"
+@rendermode InteractiveServer
+@inject InformacinesSistemos.Services.SimpleAuthenticationStateProvider AuthProvider
+@inject NavigationManager Nav
+
+<PageTitle>Registracija</PageTitle>
+
+<h2>Registracija</h2>
+
+<p>
+    Demonstracinis registracijos puslapis: duomenys kol kas nesaugomi duomenų bazėje.
+    Po registracijos naudotojas automatiškai prisijungia kaip „Naudotojas“.
+</p>
+
+<div class="login-form">
+    <label>
+        Vardas
+        <input @bind="firstName" />
+    </label>
+
+    <label>
+        Pavardė
+        <input @bind="lastName" />
+    </label>
+
+    <label>
+        El. paštas
+        <input @bind="email" type="email" />
+    </label>
+
+    <label>
+        Slaptažodis
+        <input @bind="password" type="password" />
+    </label>
+
+    <button class="primary-btn" @onclick="HandleRegister" disabled="@IsDisabled">
+        Registruotis
+    </button>
+</div>
+
+@code {
+    private string firstName = string.Empty;
+    private string lastName = string.Empty;
+    private string email = string.Empty;
+    private string password = string.Empty;
+
+    private bool IsDisabled =>
+        string.IsNullOrWhiteSpace(firstName) ||
+        string.IsNullOrWhiteSpace(lastName) ||
+        string.IsNullOrWhiteSpace(email) ||
+        string.IsNullOrWhiteSpace(password);
+
+    private void HandleRegister()
+    {
+        // Čia vėliau galėsim sukurti Naudotojas įrašą DB.
+        // Dabar – tiesiog prisijungiame kaip paprastas naudotojas.
+        AuthProvider.SignIn(email, "User");
+        Nav.NavigateTo("/");
+    }
+}

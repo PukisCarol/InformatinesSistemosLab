@@ -1,0 +1,206 @@
+﻿@page "/checkout"
+@rendermode InteractiveServer
+@using InformacinesSistemos.Models
+@using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.AspNetCore.Components.Authorization
+@inject InformacinesSistemos.Services.ICartService CartService
+@inject AuthenticationStateProvider AuthStateProvider
+@inject NavigationManager Nav
+
+<PageTitle>Apmokėjimas</PageTitle>
+
+<h2>Užsakymo apmokėjimas</h2>
+
+@if (!CartService.Items.Any())
+{
+    <p>Jūsų krepšelis tuščias. Pirmiausia pridėkite žaidimų į krepšelį.</p>
+    <button class="primary-btn" @onclick="GoToGames">Peržiūrėti žaidimus</button>
+}
+else if (!isAuthenticated)
+{
+    <p>Norėdami atlikti užsakymą, turite prisijungti.</p>
+    <a href="/login" class="link-btn">Prisijungti</a>
+}
+else if (isCompleted)
+{
+    <div class="checkout-success">
+        <h3>Užsakymas sėkmingai pateiktas!</h3>
+        <p>
+            Jūsų užsakymas Nr. <strong>@orderNumber</strong> priimtas.
+            Patvirtinimas išsiųstas el. paštu <strong>@currentUserEmail</strong>.
+        </p>
+        <button class="primary-btn" @onclick="GoToMyGames">Peržiūrėti mano žaidimus</button>
+    </div>
+}
+else
+{
+    <div class="checkout-layout">
+        <!-- Kairė pusė – pirkėjo ir pristatymo duomenys -->
+        <EditForm Model="order" OnValidSubmit="ConfirmOrder">
+            <DataAnnotationsValidator />
+            <ValidationSummary />
+
+            <div class="checkout-form">
+                <h3>Pirkėjo duomenys</h3>
+
+                <label>
+                    Vardas, pavardė
+                    <InputText @bind-Value="order.FullName" />
+                </label>
+
+                <label>
+                    El. paštas
+                    <InputText @bind-Value="order.Email" />
+                </label>
+
+                <label>
+                    Telefono numeris
+                    <InputText @bind-Value="order.Phone" />
+                </label>
+
+                <h3>Pristatymas / sąskaitos adresas</h3>
+
+                <label>
+                    Gatvė, namo / buto nr.
+                    <InputText @bind-Value="order.AddressLine" />
+                </label>
+
+                <label>
+                    Miestas
+                    <InputText @bind-Value="order.City" />
+                </label>
+
+                <label>
+                    Pašto kodas
+                    <InputText @bind-Value="order.PostCode" />
+                </label>
+
+                <label>
+                    Papildoma informacija (nebūtina)
+                    <InputTextArea @bind-Value="order.Notes" rows="3" />
+                </label>
+
+                <h3>Mokėjimo būdas</h3>
+
+                <InputRadioGroup @bind-Value="order.PaymentMethod" class="payment-group">
+                    <label>
+                        <InputRadio Value="@PaymentKortele" /> Banko kortele
+                    </label>
+                    <label>
+                        <InputRadio Value="@PaymentElBank" /> Elektroninė bankininkystė
+                    </label>
+                    <label>
+                        <InputRadio Value="@PaymentPayPal" /> PayPal
+                    </label>
+                </InputRadioGroup>
+
+                <div class="form-actions">
+                    <button type="button" class="outline-btn" @onclick="GoBack">Grįžti į krepšelį</button>
+                    <button type="submit" class="primary-btn">Patvirtinti užsakymą</button>
+                </div>
+            </div>
+        </EditForm>
+
+        <!-- Dešinė pusė – užsakymo suvestinė -->
+        <div class="checkout-summary">
+            <h3>Užsakymo suvestinė</h3>
+
+            <ul class="summary-items">
+                @foreach (var item in CartService.Items)
+                {
+                    var game = item.Zaidimas;
+                    <li>
+                        <div class="si-main">
+                            <span>@(game?.Aprasymas ?? "Žaidimas")</span>
+                            <span>@item.Quantity x @((game?.Kaina ?? 0).ToString("0.00")) €</span>
+                        </div>
+                    </li>
+                }
+            </ul>
+
+            <div class="summary-line">
+                <span>Tarpinė suma</span>
+                <span>@Subtotal.ToString("0.00") €</span>
+            </div>
+            <div class="summary-line">
+                <span>Pristatymas</span>
+                <span>@Shipping.ToString("0.00") €</span>
+            </div>
+            <div class="summary-total">
+                <span>Iš viso</span>
+                <span>@Total.ToString("0.00") €</span>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    // --- konstantos mokėjimo tipams ---
+    private const string PaymentKortele = "Kortele";
+    private const string PaymentElBank = "ElBankininkyste";
+    private const string PaymentPayPal = "PayPal";
+
+    private bool isAuthenticated;
+    private string? currentUserEmail;
+
+    private OrderForm order = new();
+    private bool isCompleted = false;
+    private string orderNumber = string.Empty;
+
+    private double Subtotal => CartService.GetTotal();
+    private double Shipping => CartService.Items.Any() ? 2.99 : 0;
+    private double Total => Subtotal + Shipping;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        isAuthenticated = user.Identity?.IsAuthenticated ?? false;
+        currentUserEmail = user.Identity?.Name;
+
+        if (!string.IsNullOrWhiteSpace(currentUserEmail))
+        {
+            order.Email = currentUserEmail;
+        }
+
+        // default mokėjimo būdas
+        order.PaymentMethod = PaymentKortele;
+    }
+
+    private void GoBack()
+    {
+        Nav.NavigateTo("/cart");
+    }
+
+    private void GoToGames()
+    {
+        Nav.NavigateTo("/games");
+    }
+
+    private void GoToMyGames()
+    {
+        Nav.NavigateTo("/mygames");
+    }
+
+    private async Task ConfirmOrder()
+    {
+        // Čia būtų tikras užsakymo išsaugojimas į DB.
+        orderNumber = $"GS-{DateTime.Now:yyyyMMddHHmmss}";
+        isCompleted = true;
+
+        CartService.Clear();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private class OrderForm
+    {
+        public string FullName { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
+        public string Phone { get; set; } = string.Empty;
+        public string AddressLine { get; set; } = string.Empty;
+        public string City { get; set; } = string.Empty;
+        public string PostCode { get; set; } = string.Empty;
+        public string Notes { get; set; } = string.Empty;
+        public string PaymentMethod { get; set; } = string.Empty;
+    }
+}

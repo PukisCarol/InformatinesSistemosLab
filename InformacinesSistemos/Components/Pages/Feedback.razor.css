@@ -1,0 +1,39 @@
+﻿.feedback-form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    max-width: 600px;
+    margin-bottom: 1rem;
+}
+
+    .feedback-form input,
+    .feedback-form textarea {
+        padding: 0.45rem 0.5rem;
+        border-radius: 4px;
+        border: 1px solid #99AEAD;
+        background-color: #DEE1DD;
+        color: #28363D;
+    }
+
+    .feedback-form textarea {
+        min-height: 80px;
+    }
+
+.feedback-list {
+    list-style: none;
+    padding-left: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+}
+
+    .feedback-list li {
+        background-color: #C4CDC1;
+        border-radius: 4px;
+        padding: 0.5rem 0.6rem;
+    }
+
+        .feedback-list li span {
+            margin-right: 0.5rem;
+            font-size: 0.85rem;
+        }

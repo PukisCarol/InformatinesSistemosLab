@@ -1,0 +1,44 @@
+﻿.complaints-form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    max-width: 600px;
+    margin-bottom: 1rem;
+}
+
+    .complaints-form input,
+    .complaints-form textarea {
+        padding: 0.45rem 0.5rem;
+        border-radius: 4px;
+        border: 1px solid #99AEAD;
+        background-color: #DEE1DD;
+        color: #28363D;
+    }
+
+    .complaints-form textarea {
+        min-height: 100px;
+    }
+
+.success-msg {
+    color: #2F575D;
+    font-size: 0.9rem;
+}
+
+.complaints-table {
+    width: 100%;
+    border-collapse: collapse;
+    background-color: #C4CDC1;
+}
+
+    .complaints-table th,
+    .complaints-table td {
+        border: 1px solid #99AEAD;
+        padding: 0.3rem 0.5rem;
+        font-size: 0.9rem;
+    }
+
+    .complaints-table th {
+        background-color: #658B6F;
+        color: #DEE1DD;
+        text-align: left;
+    }

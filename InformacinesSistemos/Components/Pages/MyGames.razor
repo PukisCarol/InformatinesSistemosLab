@@ -1,24 +1,103 @@
 ﻿@page "/mygames"
+@using InformacinesSistemos.Models
+@using Microsoft.AspNetCore.Components.Authorization
+@inject InformacinesSistemos.Services.IGameService GameService
+@inject AuthenticationStateProvider AuthStateProvider
+@inject NavigationManager Nav
 
-<h3>Mano žaidimai</h3>
+<PageTitle>Mano žaidimai</PageTitle>
 
-<p>Čia matysi visus savo įsigytus ar išsinuomotus žaidimus.</p>
+<h2>Mano skelbimai ir žaidimai</h2>
 
-<table class="table table-striped">
-    <thead>
-        <tr>
-            <th>Pavadinimas</th>
-            <th>Tipas</th>
-            <th>Būsena</th>
-            <th>Veiksmai</th>
-        </tr>
-    </thead>
-    <tbody>
-        <tr>
-            <td>Monopolis</td>
-            <td>Stalo</td>
-            <td>Nuomotas iki 2025-11-15</td>
-            <td><NavLink class="btn btn-secondary btn-sm" href="/game/1">Peržiūrėti</NavLink></td>
-        </tr>
-    </tbody>
-</table>
+@if (isLoading)
+{
+    <p>Kraunama...</p>
+}
+else if (!isAuthenticated)
+{
+    <p>Norėdami matyti savo žaidimus, turite prisijungti.</p>
+    <a href="/login" class="link-btn">Prisijungti</a>
+}
+else if (games is null || !games.Any())
+{
+    <p>Šiuo metu neturite nė vieno žaidimo šioje sistemoje.</p>
+    <button class="primary-btn" @onclick="@GoToAddGame">
+        Pridėti naują žaidimą
+    </button>
+}
+else
+{
+    <p>
+        Rodomi žaidimai, kurių savininko el. paštas sutampa su jūsų prisijungimo adresu
+        (<strong>@currentUserEmail</strong>).
+    </p>
+
+    <div class="games-grid">
+        @foreach (var g in games)
+        {
+            <div class="game-card">
+                <div class="game-header">
+                    <span class="game-type">@GetTypeLabel(g)</span>
+                    <span class="game-price">@g.Kaina.ToString("0.00") €</span>
+                </div>
+                <h5>@g.Aprasymas</h5>
+                <div class="game-meta">
+                    <span>@g.Kurejas</span>
+                    <span>@g.ZaidejuSkaicius žaidėjai</span>
+                    <span>@($"Reitingas: {g.Reitingas:0.0}")</span>
+                </div>
+                <div class="game-actions">
+                    <button class="outline-btn small-btn" @onclick="@(() => Nav.NavigateTo($"/games/{g.ZaidimoId}"))">
+                        Peržiūrėti
+                    </button>
+                    <button class="primary-btn small-btn">
+                        Redaguoti
+                    </button>
+                </div>
+            </div>
+        }
+    </div>
+
+    <button class="primary-btn" style="margin-top:0.8rem" @onclick="@GoToAddGame">
+        Pridėti naują žaidimą
+    </button>
+}
+
+@code {
+    private List<Zaidimas>? games;
+    private bool isLoading = true;
+    private bool isAuthenticated = false;
+    private string? currentUserEmail;
+
+    protected override async Task OnInitializedAsync()
+    {
+        isLoading = true;
+
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        isAuthenticated = user.Identity?.IsAuthenticated ?? false;
+        currentUserEmail = user.Identity?.Name;
+
+        if (isAuthenticated && !string.IsNullOrWhiteSpace(currentUserEmail))
+        {
+            var allGames = await GameService.GetAllAsync();
+            games = allGames
+                .Where(g => g.Savininkas?.ElPastas?.Equals(currentUserEmail, StringComparison.OrdinalIgnoreCase) == true)
+                .ToList();
+        }
+
+        isLoading = false;
+    }
+
+    private static string GetTypeLabel(Zaidimas g)
+        => g.Kompiuterinis != null ? "Kompiuterinis"
+         : g.Stalo != null ? "Stalo"
+                                  : "Kitas";
+
+    private void GoToAddGame()
+    {
+        Nav.NavigateTo("/mygames/add");
+    }
+
+}
