@@ -1,7 +1,83 @@
 ﻿@page "/"
+@rendermode InteractiveServer
+@inject NavigationManager Nav
 
-<PageTitle>Home</PageTitle>
+<PageTitle>Pradžia</PageTitle>
 
-<h1>Mūsų žaidimų puslapis</h1>
+<main class="home-root">
+    <!-- HERO -->
+    <section class="hero">
+        <div class="hero-inner">
+            <div class="hero-text">
+                <h1>Vaizdo ir stalo žaidimų parduotuvė</h1>
+                <p>
+                    Pirk, parduok ir nuomok žaidimus vienoje vietoje.
+                    Rask kompiuterinius ir stalo žaidimus pagal žanrą, reitingą ir žaidėjų skaičių.
+                </p>
+                <div class="hero-actions">
+                    <button class="primary-btn" @onclick="@(() => Nav.NavigateTo("/games"))">
+                        Peržiūrėti visus žaidimus
+                    </button>
+                    <button class="outline-btn" @onclick="@(() => Nav.NavigateTo("/mygames"))">
+                        Mano žaidimai
+                    </button>
+                </div>
+            </div>
 
-Welcome to your new app.
+            <div class="hero-panel">
+                <h3>Naujausi pasiūlymai</h3>
+                <ul>
+                    <li>🔥 Populiariausi PC žaidimai</li>
+                    <li>🎲 Strateginiai stalo žaidimai vakarėliams</li>
+                    <li>💾 Retro kolekcijos ir riboti leidimai</li>
+                </ul>
+            </div>
+        </div>
+    </section>
+
+    <!-- Juosta kaip Eneba "benefits" -->
+    <section class="highlight-strip">
+        <div class="strip-item">
+            <span class="strip-label">Greitas pristatymas</span>
+            <span class="strip-text">Lietuvoje ir ES</span>
+        </div>
+        <div class="strip-item">
+            <span class="strip-label">Saugi prekyba</span>
+            <span class="strip-text">Patikrinti pardavėjai</span>
+        </div>
+        <div class="strip-item">
+            <span class="strip-label">DI pagalba</span>
+            <span class="strip-text">Rask žaidimą pagal nuotaiką</span>
+        </div>
+    </section>
+
+    <!-- Kategorijos -->
+    <section class="home-section">
+        <div class="section-header">
+            <h2>Kategorijos</h2>
+            <button class="link-btn" @onclick="@(() => Nav.NavigateTo("/games"))">
+                Peržiūrėti viską →
+            </button>
+        </div>
+
+        <div class="category-grid">
+            <article class="category-card" @onclick="@(() => Nav.NavigateTo("/games?type=pc"))">
+                <h3>Kompiuteriniai žaidimai</h3>
+                <p>Populiariausi PC žaidimai, RPG, šaudyklės, strategijos ir daugiau.</p>
+                <span class="cat-meta">Steam, Epic, GOG ir kt.</span>
+            </article>
+
+            <article class="category-card" @onclick="@(() => Nav.NavigateTo("/games?type=board"))">
+                <h3>Stalo žaidimai</h3>
+                <p>Strateginiai, vakarėlių ir kooperaciniai žaidimai visai kompanijai.</p>
+                <span class="cat-meta">Nuo klasikų iki naujienų.</span>
+            </article>
+
+            <article class="category-card" @onclick="@(() => Nav.NavigateTo("/games"))">
+                <h3>Visi žaidimai</h3>
+                <p>Peržiūrėk visą katalogą ir rask naujų favoritų.</p>
+                <span class="cat-meta">Filtravimas pagal žanrą ir reitingą.</span>
+            </article>
+        </div>
+    </section>
+</main>

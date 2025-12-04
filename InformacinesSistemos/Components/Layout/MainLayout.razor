@@ -1,23 +1,129 @@
 ﻿@inherits LayoutComponentBase
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Security.Claims
+@inject NavigationManager Nav
 
-<div class="page">
-    <div class="sidebar">
-        <NavMenu />
+<div class="app-shell">
+    <!-- VIRŠUTINĖ JUOSTA: logo + paieška + LT/EUR + Parduoti + Atsijungti -->
+    <header class="top-header">
+        <div class="top-header-inner">
+            <div class="logo-area" @onclick="@(() => Nav.NavigateTo("/"))">
+                <div class="logo-circle">G</div>
+                <span class="logo-text">GameShop</span>
+            </div>
+
+            <div class="search-area">
+                <input class="search-input"
+                       placeholder="Ieškoti žaidimų, papildymų ir daugiau" />
+                <button class="search-btn">
+                    🔍
+                </button>
+            </div>
+
+            <div class="top-right">
+                <span class="lang-currency">LT | EUR</span>
+
+                <AuthorizeView>
+                    <Authorized Context="auth">
+                        <span class="user-email">@auth.User.Identity?.Name</span>
+                        <button class="sell-btn" @onclick="GoToSell">Parduoti</button>
+                        <button class="link-btn" @onclick="SignOut">Atsijungti</button>
+                    </Authorized>
+                    <NotAuthorized>
+                        <a class="link-btn" href="/login">Prisijungti</a>
+                        <span>|</span>
+                        <a class="link-btn" href="/register">Registruotis</a>
+                    </NotAuthorized>
+                </AuthorizeView>
+            </div>
+        </div>
+    </header>
+
+    <!-- APATINĖ JUOSTA: Kategorijos + funkcijos pagal rolę -->
+    <div class="nav-row">
+        <div class="nav-left">
+            <button class="menu-button" @onclick="GoToCategories">
+                ☰ Kategorijos
+            </button>
+
+            <AuthorizeView>
+                <Authorized Context="auth">
+                    @{
+                        var role = auth.User.FindFirst(ClaimTypes.Role)?.Value ?? string.Empty;
+                    }
+
+                    <!-- VISIEMS PRISIJUNGUSIEMS: naudotojo dalis -->
+                    <div class="nav-section">
+                        <span class="nav-section-title">Naudotojo dalis:</span>
+                        <NavLink href="/profile" class="nav-link">Profilis</NavLink>
+                        <NavLink href="/orders" class="nav-link">Pirkimų / nuomos istorija</NavLink>
+                    </div>
+
+                    <!-- VISIEMS PRISIJUNGUSIEMS: prekių + mokėjimo dalis -->
+                    <div class="nav-section">
+                        <span class="nav-section-title">Prekių ir mokėjimo dalis:</span>
+                        <NavLink href="/games" class="nav-link">Peržiūrėti prekes</NavLink>
+                        <NavLink href="/mygames" class="nav-link">Mano parduodami žaidimai</NavLink>
+                        <NavLink href="/cart" class="nav-link">Krepšelis</NavLink>
+                        <NavLink href="/checkout" class="nav-link">Apmokėjimas</NavLink>
+                    </div>
+
+                    <!-- VISIEMS PRISIJUNGUSIEMS: komunikavimas -->
+                    <div class="nav-section">
+                        <span class="nav-section-title">Komunikavimas:</span>
+                        <NavLink href="/ai-interface" class="nav-link">Pagalba su DI</NavLink>
+                        <NavLink href="/complaints" class="nav-link">Nusiskundimai</NavLink>
+                        <NavLink href="/feedback" class="nav-link">Atsiliepimai</NavLink>
+                    </div>
+
+                    <!-- PAPILDOMAI moderatoriui -->
+                    @if (!string.IsNullOrWhiteSpace(role) &&
+                                        role.IndexOf("moderator", StringComparison.OrdinalIgnoreCase) >= 0)
+                    {
+                        <div class="nav-section">
+                            <span class="nav-section-title">Moderatoriaus dalis:</span>
+                            <NavLink href="/moderation/users" class="nav-link">Naudotojų valdymas</NavLink>
+                            <NavLink href="/moderation/games" class="nav-link">Prekių moderavimas</NavLink>
+                            <NavLink href="/moderation/reviews" class="nav-link">Atsiliepimų peržiūra</NavLink>
+                        </div>
+                    }
+
+                    <!-- PAPILDOMAI administratoriui -->
+                    @if (!string.IsNullOrWhiteSpace(role) &&
+                                        role.IndexOf("admin", StringComparison.OrdinalIgnoreCase) >= 0)
+                    {
+                        <div class="nav-section">
+                            <span class="nav-section-title">Administratoriaus dalis:</span>
+                            <NavLink href="/admin/users" class="nav-link">Naudotojai</NavLink>
+                            <NavLink href="/admin/games" class="nav-link">Žaidimai</NavLink>
+                            <NavLink href="/admin/reports" class="nav-link">Ataskaitos</NavLink>
+                        </div>
+                    }
+
+                </Authorized>
+                <NotAuthorized>
+                    @* svečias – tik Kategorijos *@
+                </NotAuthorized>
+            </AuthorizeView>
+
+        </div>
     </div>
 
-    <main>
-        <div class="top-row px-4">
-            <a href="https://learn.microsoft.com/aspnet/core/" target="_blank">About</a>
-        </div>
-
-        <article class="content px-4">
+    <!-- TURINYS -->
+    <main class="main-body">
+        <article class="page-content">
             @Body
         </article>
     </main>
 </div>
 
-<div id="blazor-error-ui" data-nosnippet>
-    An unhandled error has occurred.
-    <a href="." class="reload">Reload</a>
-    <span class="dismiss">🗙</span>
-</div>
+@code {
+    private void GoToCategories() => Nav.NavigateTo("/games");
+    private void GoToSell() => Nav.NavigateTo("/mygames/add");
+
+    private void SignOut()
+    {
+        // mūsų „fake“ autentifikacijai užtenka nuvesti į login
+        Nav.NavigateTo("/login");
+    }
+}

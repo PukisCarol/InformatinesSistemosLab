@@ -1,14 +1,30 @@
 ﻿@page "/reports"
+@using Microsoft.AspNetCore.Components.Authorization
 
-<h3>Ataskaitų formavimas</h3>
+<PageTitle>Sistemos ataskaitos</PageTitle>
 
-<label>Pasirinkite ataskaitos tipą:</label>
-<select class="form-select w-50 mb-3">
-    <option>Žaidimų pardavimai</option>
-    <option>Nuomos istorija</option>
-    <option>Vartotojų aktyvumas</option>
-</select>
+<AuthorizeView Roles="Admin">
+    <Authorized>
+        <h2>Sistemos ataskaitos</h2>
 
-<button class="btn btn-primary">Generuoti ataskaitą</button>
+        <p>
+            Šis puslapis skirtas administratoriui – čia gali būti generuojamos
+            ataskaitos apie:
+        </p>
 
-<p class="mt-3"><i>Čia bus rodoma suformuota ataskaita...</i></p>
+        <ul>
+            <li>Užsakymų skaičių per tam tikrą laikotarpį;</li>
+            <li>Populiariausius žaidimus (pagal užsakymus ar reitingus);</li>
+            <li>Aktyvius ir blokuotus naudotojus;</li>
+            <li>Pateiktų nusiskundimų ir atsiliepimų statistiką.</li>
+        </ul>
+
+        <p>
+            Šiuo metu ataskaitų duomenys yra demonstraciniai (nėra realios DB),
+            tačiau puslapis paruoštas išplėtimui pagal projekto reikalavimus.
+        </p>
+    </Authorized>
+    <NotAuthorized>
+        <p>Šis puslapis prieinamas tik administratoriams.</p>
+    </NotAuthorized>
+</AuthorizeView>

@@ -1,0 +1,30 @@
+﻿.users-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 0.8rem;
+    background-color: #C4CDC1;
+}
+
+    .users-table th,
+    .users-table td {
+        border: 1px solid #99AEAD;
+        padding: 0.35rem 0.5rem;
+        font-size: 0.9rem;
+    }
+
+    .users-table th {
+        background-color: #658B6F;
+        color: #DEE1DD;
+        text-align: left;
+    }
+
+.small {
+    padding: 0.2rem 0.5rem;
+    font-size: 0.8rem;
+}
+
+.role-select {
+    margin-left: 0.3rem;
+    padding: 0.2rem 0.4rem;
+    font-size: 0.8rem;
+}

@@ -1,0 +1,22 @@
+﻿.ai-form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    max-width: 600px;
+}
+
+    .ai-form textarea {
+        min-height: 120px;
+        padding: 0.5rem;
+        border-radius: 4px;
+        border: 1px solid #99AEAD;
+        background-color: #DEE1DD;
+        color: #28363D;
+    }
+
+.ai-answer {
+    margin-top: 1rem;
+    padding: 0.6rem 0.7rem;
+    background-color: #C4CDC1;
+    border-radius: 4px;
+}

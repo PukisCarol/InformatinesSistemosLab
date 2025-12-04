@@ -1,7 +1,40 @@
 ﻿@page "/ai-interface"
-<PageTitle>Dirbtinio intelekto sąsaja</PageTitle>
+@rendermode InteractiveServer
+<PageTitle>Pagalba su DI</PageTitle>
 
-<section class="container py-4">
-    <h1>Dirbtinio intelekto sąsaja</h1>
-    <p>Čia bus integruota dirbtinio intelekto sąsaja (pvz., rekomendacijoms, paieškai ar pokalbiui).</p>
-</section>
+<h2>Pagalbos atsakiklis (DI)</h2>
+
+<p>
+    Čia naudotojas gali užduoti klausimus apie žaidimus, užsakymus ar sistemą.
+    Šiuo metu atsakymai nėra siunčiami į tikrą DI servisą – tik imituojame elgesį.
+</p>
+
+<div class="ai-form">
+    <textarea @bind="question"
+              placeholder="Aprašykite savo klausimą ar problemą..."></textarea>
+
+    <button class="primary-btn" @onclick="SendQuestion" disabled="@string.IsNullOrWhiteSpace(question)">
+        Gauti atsakymą
+    </button>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(lastAnswer))
+{
+    <div class="ai-answer">
+        <h4>DI atsakymas (pavyzdinis):</h4>
+        <p>@lastAnswer</p>
+    </div>
+}
+
+@code {
+    private string question = string.Empty;
+    private string lastAnswer = string.Empty;
+
+    private void SendQuestion()
+    {
+        // Čia vėliau būtų tikras DI kvietimas; dabar – tiesiog demo tekstas
+        lastAnswer = "Šiuo metu pavyzdiniame režime: jūsų klausimas užfiksuotas ir būtų perduotas DI asistentui. " +
+                     "Klausimas: \"" + question + "\".";
+        question = string.Empty;
+    }
+}

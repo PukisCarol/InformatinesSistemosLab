@@ -1,31 +1,95 @@
-﻿@page "/game/{id:int}"
+﻿@page "/games/{id:int}"
+@using InformacinesSistemos.Models
+@inject InformacinesSistemos.Services.IGameService GameService
+@inject InformacinesSistemos.Services.ICartService CartService
+@inject NavigationManager Nav
 
-<h3>Žaidimo detalės</h3>
+<PageTitle>Žaidimo informacija</PageTitle>
 
-<p><b>Pavadinimas:</b> Monopolis</p>
-<p><b>Aprašymas:</b> Klasikinis stalo žaidimas visai šeimai.</p>
+@if (isLoading)
+{
+    <p>Kraunama...</p>
+}
+else if (game is null)
+{
+    <p>Žaidimas nerastas.</p>
+    <button class="outline-btn" @onclick="@GoBack">Grįžti</button>
+}
+else
+{
+    <div class="game-details">
+        <div class="gd-header">
+            <span class="gd-type">@GetTypeLabel(game)</span>
+            <span class="gd-price">@game.Kaina.ToString("0.00") €</span>
+        </div>
 
-<hr />
+        <h2>@game.Aprasymas</h2>
 
-<h4>Komentarai ir įvertinimai</h4>
+        <div class="gd-meta">
+            <div><strong>Kūrėjas:</strong> @game.Kurejas</div>
+            <div><strong>Žaidėjų skaičius:</strong> @game.ZaidejuSkaicius</div>
+            <div><strong>Amžiaus cenzas:</strong> @game.AmziausCenzas+</div>
+            <div><strong>Reitingas:</strong> @game.Reitingas.ToString("0.0")</div>
+            <div><strong>Žanras:</strong> @game.Zanras?.Pavadinimas</div>
+        </div>
 
-<div class="mb-3">
-    <textarea class="form-control" rows="3" placeholder="Parašykite komentarą..."></textarea>
-</div>
+        @if (game.Kompiuterinis != null)
+        {
+            <div class="gd-box">
+                <h4>Kompiuterinio žaidimo informacija</h4>
+                <p><strong>OS:</strong> @game.Kompiuterinis.OS</p>
+                <p><strong>Platforma:</strong> @game.Kompiuterinis.Platforma</p>
+                <p><strong>Užimama vieta diske:</strong> @game.Kompiuterinis.UzimamaVietaDiske GB</p>
+                <p><strong>Sisteminiai reikalavimai:</strong> @game.Kompiuterinis.SisteminiaiReikalavimai</p>
+            </div>
+        }
+        else if (game.Stalo != null)
+        {
+            <div class="gd-box">
+                <h4>Stalo žaidimo informacija</h4>
+                <p><strong>Dėžės dydis:</strong> @game.Stalo.Ilgis x @game.Stalo.Plotis x @game.Stalo.Aukstis cm</p>
+                <p><strong>Svoris:</strong> @game.Stalo.Svoris kg</p>
+                <p><strong>Trukmė:</strong> @game.Stalo.Trukme min</p>
+            </div>
+        }
 
-<label>Įvertinimas:</label>
-<select class="form-select w-25 mb-3">
-    <option>5 ⭐⭐⭐⭐⭐</option>
-    <option>4 ⭐⭐⭐⭐</option>
-    <option>3 ⭐⭐⭐</option>
-    <option>2 ⭐⭐</option>
-    <option>1 ⭐</option>
-</select>
+        <div class="gd-actions">
+            <button class="outline-btn" @onclick="@GoBack">Grįžti</button>
+            <button class="primary-btn" @onclick="@AddToCart">
+                Į krepšelį
+            </button>
+        </div>
+    </div>
+}
 
-<button class="btn btn-primary">Pateikti</button>
+@code {
+    [Parameter] public int Id { get; set; }
 
-<hr />
-<h5>Esami komentarai:</h5>
-<ul>
-    <li>Jonas: „Labai smagus žaidimas!“ ⭐⭐⭐⭐⭐</li>
-</ul>
+    private Zaidimas? game;
+    private bool isLoading = true;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        isLoading = true;
+        game = await GameService.GetByIdAsync(Id);
+        isLoading = false;
+    }
+
+    private static string GetTypeLabel(Zaidimas g)
+        => g.Kompiuterinis != null ? "Kompiuterinis žaidimas"
+         : g.Stalo != null ? "Stalo žaidimas"
+                                  : "Žaidimas";
+
+    private void AddToCart()
+    {
+        if (game != null)
+        {
+            CartService.Add(game, 1);
+        }
+    }
+
+    private void GoBack()
+    {
+        Nav.NavigateTo("/games");
+    }
+}
