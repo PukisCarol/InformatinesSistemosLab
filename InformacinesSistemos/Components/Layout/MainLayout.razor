@@ -2,6 +2,7 @@
 @using Microsoft.AspNetCore.Components.Authorization
 @using System.Security.Claims
 @inject NavigationManager Nav
+@inject InformacinesSistemos.Services.SimpleAuthenticationStateProvider AuthProvider
 
 <div class="app-shell">
     <!-- VIRŠUTINĖ JUOSTA: logo + paieška + LT/EUR + Parduoti + Atsijungti -->
@@ -56,7 +57,8 @@
                     <div class="nav-section">
                         <span class="nav-section-title">Naudotojo dalis:</span>
                         <NavLink href="/profile" class="nav-link">Profilis</NavLink>
-                        <NavLink href="/orders" class="nav-link">Pirkimų / nuomos istorija</NavLink>
+                        <!-- CIA LYG PURCHADE HISTORY TURETU BUT? buvo /orders -->
+                        <NavLink href="/purchase-history" class="nav-link">Pirkimų / nuomos istorija</NavLink>
                     </div>
 
                     <!-- VISIEMS PRISIJUNGUSIEMS: prekių + mokėjimo dalis -->
@@ -124,6 +126,7 @@
     private void SignOut()
     {
         // mūsų „fake“ autentifikacijai užtenka nuvesti į login
+        AuthProvider.SignOut();
         Nav.NavigateTo("/login");
     }
 }

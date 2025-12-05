@@ -1,0 +1,156 @@
+﻿@page "/moderation/games"
+@page "/admin/games"
+@rendermode InteractiveServer
+@using InformacinesSistemos.Models
+@using Microsoft.AspNetCore.WebUtilities
+@using Microsoft.AspNetCore.Components.Authorization
+@inject InformacinesSistemos.Services.IGameService GameService
+@inject NavigationManager Nav
+@inject InformacinesSistemos.Services.ICartService CartService
+
+
+<PageTitle>Žaidimų moderacija</PageTitle>
+<AuthorizeView Roles="Moderator,Admin">
+<Authorized>
+<h2>Žaidimų moderacija</h2>
+
+@* <div class="games-filters">
+    <input placeholder="Paieška pagal pavadinimą, kūrėją ar žanrą"
+           @oninput="OnSearchChange" />
+
+    <select @onchange="OnTypeChange" value="@selectedType">
+        <option value="">Visi tipai</option>
+        <option value="pc">Kompiuteriniai žaidimai</option>
+        <option value="board">Stalo žaidimai</option>
+    </select>
+</div> *@
+
+        @if (allGames is null)
+        {
+            <p>Kraunama...</p>
+        }
+        else if (!allGames.Any())
+        {
+            <p>Nerasta žaidimų.</p>
+        }
+        else
+        {
+            <table class="users-table">
+                <thead>
+                    <tr>
+                        <th>Kaina</th>
+                        <th>Reitingas</th>
+                        <th>Kurejas</th>
+                        <th>Zanras</th>
+                        <th>Savininkas</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var u in allGames)
+                    {
+                        <tr>
+                            <td>@u.Kaina </td>
+                            <td>@u.Reitingas</td>
+                            <td>@u.Kurejas</td>
+                            <td>@u.Zanras.Pavadinimas</td>
+                            <td>@u.Savininkas.ElPastas</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </Authorized>
+    <NotAuthorized>
+        <p>Šis puslapis prieinamas tik moderatoriams ir administratoriams.</p>
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+    private List<Zaidimas>? allGames;
+    private List<Zaidimas>? filteredGames;
+
+    private string? selectedType;
+    private string searchText = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadGamesFromService();
+        ApplyFilters();
+    }
+    private void AddToCart(Zaidimas game)
+    {
+        CartService.Add(game, 1);
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        // jei ateisim su ?type=pc ir pan.
+        var uri = Nav.ToAbsoluteUri(Nav.Uri);
+        var query = QueryHelpers.ParseQuery(uri.Query);
+
+        if (query.TryGetValue("type", out var typeValues))
+        {
+            selectedType = typeValues.ToString();
+        }
+
+        if (allGames is null)
+        {
+            await LoadGamesFromService();
+        }
+
+        ApplyFilters();
+    }
+
+    private async Task LoadGamesFromService()
+    {
+        allGames = await GameService.GetAllAsync();
+    }
+
+    private void ApplyFilters()
+    {
+        if (allGames is null)
+            return;
+
+        IEnumerable<Zaidimas> query = allGames;
+
+        if (!string.IsNullOrWhiteSpace(selectedType))
+        {
+            if (selectedType == "pc")
+            {
+                query = query.Where(g => g.Kompiuterinis != null);
+            }
+            else if (selectedType == "board")
+            {
+                query = query.Where(g => g.Stalo != null);
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(searchText))
+        {
+            var t = searchText.Trim();
+            query = query.Where(g =>
+                (g.Aprasymas?.Contains(t, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                (g.Kurejas?.Contains(t, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                (g.Zanras?.Pavadinimas?.Contains(t, StringComparison.OrdinalIgnoreCase) ?? false));
+        }
+
+        filteredGames = query.ToList();
+    }
+
+    private void OnSearchChange(ChangeEventArgs e)
+    {
+        searchText = e.Value?.ToString() ?? string.Empty;
+        ApplyFilters();
+    }
+
+    private void OnTypeChange(ChangeEventArgs e)
+    {
+        selectedType = e.Value?.ToString();
+        ApplyFilters();
+    }
+
+    private static string GetTypeLabel(Zaidimas g)
+        => g.Kompiuterinis != null ? "Kompiuterinis"
+         : g.Stalo != null ? "Stalo"
+                                  : "Kitas";
+}

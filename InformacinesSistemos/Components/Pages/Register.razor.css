@@ -1,0 +1,21 @@
+﻿.login-form {
+    max-width: 400px;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+}
+
+    .login-form label {
+        display: flex;
+        flex-direction: column;
+        font-size: 0.9rem;
+    }
+
+    .login-form input,
+    .login-form select {
+        padding: 0.4rem 0.5rem;
+        border-radius: 4px;
+        border: 1px solid #99AEAD;
+        background-color: #DEE1DD;
+        color: #28363D;
+    }

@@ -1,0 +1,82 @@
+﻿@page "/moderation/reviews"
+@using InformacinesSistemos.Models
+@using Microsoft.AspNetCore.Components.Authorization
+@inject InformacinesSistemos.Services.IUserService UserService
+@inject InformacinesSistemos.Services.IReviewService ReviewService
+@inject NavigationManager Nav
+
+<PageTitle>Naudotojų peržiūra</PageTitle>
+
+<AuthorizeView Roles="Moderator,Admin">
+    <Authorized>
+        <h2>Naudotojų peržiūra ir valdymas</h2>
+
+        @if (reviews is null)
+        {
+            <p>Kraunama...</p>
+        }
+        else if (!reviews.Any())
+        {
+            <p>Nerasta atsiliepimų.</p>
+        }
+        else
+        {
+            <table class="users-table">
+                <thead>
+                    <tr>
+                        <th>Vardas</th>
+                        <th>Atsiliepimas</th>
+                        <th>Ivertinimas</th>
+                        <th>Tvirtinti</th>
+                        <th>Trinti</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var u in reviews)
+                    {
+                        <tr>
+                            <td>@u.Data </td>
+                            <td>@u.AtsiliepimoTekstas</td>
+                            <td>@u.Ivertinimas</td>
+                            <td>
+                                <button class="primary-btn small"
+                                        @onclick="() => AcceptReview(u.AtsiliepimoId)">
+                                        Tvirtinti
+                                </button>
+                            </td>
+
+                            <td>
+                                <button class="outline-btn small danger"
+                                        @onclick="() => DeclineReview(u.AtsiliepimoId)">
+                                        Trinti
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </Authorized>
+    <NotAuthorized>
+        <p>Šis puslapis prieinamas tik moderatoriams ir administratoriams.</p>
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+    private List<Atsiliepimas>? reviews;
+
+    protected override async Task OnInitializedAsync()
+    {
+        reviews = await ReviewService.GetAllAsync();
+    }
+
+    private async Task AcceptReview(int atsiliepimoId)
+    {
+        
+    }
+
+    private async Task DeclineReview(int atsiliepimoId)
+    {
+        
+    }
+}

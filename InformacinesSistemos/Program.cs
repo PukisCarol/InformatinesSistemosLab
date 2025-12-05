@@ -8,6 +8,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddScoped<IGameService, InMemoryGameService>();
 builder.Services.AddScoped<ICartService, InMemoryCartService>();
 builder.Services.AddScoped<IUserService, InMemoryUserService>();
+builder.Services.AddScoped<IReviewService, InMemoryReviewService>();
 
 // Auth
 builder.Services.AddScoped<SimpleAuthenticationStateProvider>();
