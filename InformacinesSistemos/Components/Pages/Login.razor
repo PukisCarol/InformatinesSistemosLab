@@ -74,7 +74,7 @@
             }
 
             serverInfo = $"Prisijungimas sėkmingas. Rolė: {result.Role}";
-            AuthProvider.SignIn(model.Email.Trim(), result.Role ?? "User");
+            await AuthProvider.SignIn(model.Email.Trim(), result.Role ?? "User");
             Nav.NavigateTo("/");
         }
         catch (Exception ex)

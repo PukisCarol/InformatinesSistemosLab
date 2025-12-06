@@ -3,6 +3,7 @@ using InformacinesSistemos.Components;
 using InformacinesSistemos.Data;
 using InformacinesSistemos.Services;
 using Microsoft.AspNetCore.Components.Authorization;
+using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -10,6 +11,8 @@ var builder = WebApplication.CreateBuilder(args);
 // Jei EF naudodamas:
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+builder.Services.AddScoped<ProtectedLocalStorage>();
 
 // Jūsų kiti servisai...
 builder.Services.AddScoped<SimpleAuthenticationStateProvider>();

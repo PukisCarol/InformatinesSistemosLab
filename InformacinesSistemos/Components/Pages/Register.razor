@@ -111,8 +111,9 @@
             }
 
             serverInfo = "Registracija sėkminga. Vyksta prisijungimas...";
-            AuthProvider.SignIn(model.ElPastas, "User");
+            await AuthProvider.SignIn(model.ElPastas, "User");
             Nav.NavigateTo("/");
+
         }
         catch (Exception ex)
         {
