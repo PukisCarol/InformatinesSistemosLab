@@ -1,60 +1,151 @@
 ﻿@page "/register"
+@using System.ComponentModel.DataAnnotations
+@using InformacinesSistemos.Services
 @rendermode InteractiveServer
+
 @inject InformacinesSistemos.Services.SimpleAuthenticationStateProvider AuthProvider
 @inject NavigationManager Nav
+@inject IRegistrationService RegistrationService
 
 <PageTitle>Registracija</PageTitle>
 
 <h2>Registracija</h2>
 
 <p>
-    Demonstracinis registracijos puslapis: duomenys kol kas nesaugomi duomenų bazėje.
-    Po registracijos naudotojas automatiškai prisijungia kaip „Naudotojas“.
+    Registracijos duomenys bus įrašomi į PostgreSQL duomenų bazę „ITInformaciniuSistemuPagrindai“.
+    Po sėkmingos registracijos naudotojas automatiškai prisijungs kaip „Naudotojas“.
 </p>
 
-<div class="login-form">
-    <label>
-        Vardas
-        <input @bind="firstName" />
-    </label>
+<EditForm Model="@model" OnValidSubmit="@HandleRegister">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
 
-    <label>
-        Pavardė
-        <input @bind="lastName" />
-    </label>
+    <div class="login-form">
+        <label>
+            Vardas
+            <InputText @bind-Value="model.Vardas" />
+        </label>
+        <ValidationMessage For="@(() => model.Vardas)" />
 
-    <label>
-        El. paštas
-        <input @bind="email" type="email" />
-    </label>
+        <label>
+            Pavardė
+            <InputText @bind-Value="model.Pavarde" />
+        </label>
+        <ValidationMessage For="@(() => model.Pavarde)" />
 
-    <label>
-        Slaptažodis
-        <input @bind="password" type="password" />
-    </label>
+        <label>
+            Asmens kodas
+            <InputNumber @bind-Value="model.AsmensKodas" />
+        </label>
+        <ValidationMessage For="@(() => model.AsmensKodas)" />
 
-    <button class="primary-btn" @onclick="HandleRegister" disabled="@IsDisabled">
-        Registruotis
-    </button>
-</div>
+        <label>
+            Telefonas
+            <InputText @bind-Value="model.Telefonas" />
+        </label>
+        <ValidationMessage For="@(() => model.Telefonas)" />
+
+        <label>
+            El. paštas
+            <InputText @bind-Value="model.ElPastas" />
+        </label>
+        <ValidationMessage For="@(() => model.ElPastas)" />
+
+        <label>
+            Slaptažodis
+            <InputText @bind-Value="model.Slaptazodis" type="password" />
+        </label>
+        <ValidationMessage For="@(() => model.Slaptazodis)" />
+
+        <button class="primary-btn" type="submit" disabled="@isBusy">
+            @(isBusy ? "Registruojama..." : "Registruotis")
+        </button>
+
+        @if (!string.IsNullOrEmpty(serverError))
+        {
+            <div class="validation-error">@serverError</div>
+        }
+        @if (!string.IsNullOrEmpty(serverInfo))
+        {
+            <div class="validation-info">@serverInfo</div>
+        }
+    </div>
+</EditForm>
 
 @code {
-    private string firstName = string.Empty;
-    private string lastName = string.Empty;
-    private string email = string.Empty;
-    private string password = string.Empty;
+    private bool isBusy;
+    private string? serverError;
+    private string? serverInfo;
 
-    private bool IsDisabled =>
-        string.IsNullOrWhiteSpace(firstName) ||
-        string.IsNullOrWhiteSpace(lastName) ||
-        string.IsNullOrWhiteSpace(email) ||
-        string.IsNullOrWhiteSpace(password);
+    // View model su DataAnnotations validacija (telefonas privalomas; el. paštas su @ ir galiojančiu TLD)
+    private RegisterVm model = new();
 
-    private void HandleRegister()
+    // OnValidSubmit kviečiamas tik jei visi laukai praeina validaciją
+    private async Task HandleRegister()
     {
-        // Čia vėliau galėsim sukurti Naudotojas įrašą DB.
-        // Dabar – tiesiog prisijungiame kaip paprastas naudotojas.
-        AuthProvider.SignIn(email, "User");
-        Nav.NavigateTo("/");
+        serverError = null;
+        serverInfo = null;
+
+        try
+        {
+            isBusy = true;
+            serverInfo = "Siunčiama registracija į duomenų bazę...";
+
+            var result = await RegistrationService.RegisterAsync(new RegisterDto
+            {
+                Vardas = model.Vardas.Trim(),
+                Pavarde = model.Pavarde.Trim(),
+                AsmensKodas = model.AsmensKodas,
+                Telefonas = model.Telefonas.Trim(),
+                ElPastas = model.ElPastas.Trim(),
+                SlaptazodisPlain = model.Slaptazodis,
+                Role = "User",
+                PaskyrosBusena = "Aktyvi",
+                FkTeisesTeisId = 1
+            });
+
+            if (!result.Success)
+            {
+                serverError = result.Error ?? "Įvyko klaida registruojant.";
+                return;
+            }
+
+            serverInfo = "Registracija sėkminga. Vyksta prisijungimas...";
+            AuthProvider.SignIn(model.ElPastas, "User");
+            Nav.NavigateTo("/");
+        }
+        catch (Exception ex)
+        {
+            serverError = $"Klaida: {ex.Message}";
+            Console.Error.WriteLine(ex);
+        }
+        finally
+        {
+            isBusy = false;
+            StateHasChanged();
+        }
+    }
+
+    // Vidinis VM su DataAnnotations
+    private class RegisterVm
+    {
+        [Required(ErrorMessage = "Vardas privalomas.")]
+        public string Vardas { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Pavardė privaloma.")]
+        public string Pavarde { get; set; } = string.Empty;
+
+        [Range(1, int.MaxValue, ErrorMessage = "Asmens kodas privalomas ir turi būti teigiamas skaičius.")]
+        public int AsmensKodas { get; set; }
+
+        [Required(ErrorMessage = "Telefonas privalomas.")]
+        public string Telefonas { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "El. paštas privalomas.")]
+        [RegularExpression(@"^[^\s@]+@[^\s@]+\.[A-Za-z]{2,}$", ErrorMessage = "Neteisingas el. pašto formatas.")]
+        public string ElPastas { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Slaptažodis privalomas.")]
+        public string Slaptazodis { get; set; } = string.Empty;
     }
 }

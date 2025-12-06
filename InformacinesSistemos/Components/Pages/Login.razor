@@ -1,56 +1,101 @@
 ﻿@page "/login"
+@using System.ComponentModel.DataAnnotations
+@using InformacinesSistemos.Services
 @rendermode InteractiveServer
+
 @inject InformacinesSistemos.Services.SimpleAuthenticationStateProvider AuthProvider
 @inject NavigationManager Nav
+@inject ILoginService LoginService
 
 <PageTitle>Prisijungimas</PageTitle>
 
 <h2>Prisijungimas</h2>
 
 <p>
-    Demonstracinis prisijungimas: slaptažodis šiuo metu tikrinamas nebus.
-    Rolė naudojama tam, kad pamatytumėte skirtingas funkcijas (naudotojas, moderatorius, administratorius).
+    Prisijungimas tikrina naudotoją duomenų bazėje: el. paštą ir slaptažodį.
+    Rolė nustatoma pagal teisę (jei yra) arba pagal naudotojo rolę.
 </p>
 
-<div class="login-form">
-    <label>
-        El. paštas
-        <input @bind="email" type="email" />
-    </label>
+<EditForm Model="@model" OnValidSubmit="@HandleLogin">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
 
-    <label>
-        Slaptažodis
-        <input @bind="password" type="password" />
-    </label>
+    <div class="login-form">
+        <label>
+            El. paštas
+            <InputText @bind-Value="model.Email" />
+        </label>
+        <ValidationMessage For="@(() => model.Email)" />
 
-    <label>
-        Rolė
-        <select @bind="role">
-            <option value="User">Naudotojas</option>
-            <option value="Moderator">Moderatorius</option>
-            <option value="Admin">Administratorius</option>
-        </select>
-    </label>
+        <label>
+            Slaptažodis
+            <InputText @bind-Value="model.Password" type="password" />
+        </label>
+        <ValidationMessage For="@(() => model.Password)" />
 
-    <button class="primary-btn" @onclick="HandleLogin">
-        Prisijungti
-    </button>
+        <button class="primary-btn" type="submit" disabled="@isBusy">
+            @(isBusy ? "Jungiamasi..." : "Prisijungti")
+        </button>
 
-</div>
+        @if (!string.IsNullOrEmpty(serverError))
+        {
+            <div class="validation-error">@serverError</div>
+        }
+        @if (!string.IsNullOrEmpty(serverInfo))
+        {
+            <div class="validation-info">@serverInfo</div>
+        }
+    </div>
+</EditForm>
 
 @code {
-    private string email = string.Empty;
-    private string password = string.Empty;
-    private string role = "User";
+    private bool isBusy;
+    private string? serverError;
+    private string? serverInfo;
 
-    private void HandleLogin()
+    private LoginVm model = new();
+
+    private async Task HandleLogin()
     {
-        if (string.IsNullOrWhiteSpace(email))
-            return; // jeigu tuscias, nieko nedarom
+        serverError = null;
+        serverInfo = null;
 
-        // Šiuo metu slaptažodžio netikriname – tik nustatome rolę.
-        AuthProvider.SignIn(email, role);
-        Nav.NavigateTo("/");
+        try
+        {
+            isBusy = true;
+            serverInfo = "Tikriname prisijungimo duomenis...";
+
+            var result = await LoginService.AuthenticateAsync(model.Email.Trim(), model.Password);
+
+            if (!result.Success)
+            {
+                serverError = result.Error ?? "Prisijungimas nepavyko.";
+                return;
+            }
+
+            serverInfo = $"Prisijungimas sėkmingas. Rolė: {result.Role}";
+            AuthProvider.SignIn(model.Email.Trim(), result.Role ?? "User");
+            Nav.NavigateTo("/");
+        }
+        catch (Exception ex)
+        {
+            serverError = $"Klaida: {ex.Message}";
+            Console.Error.WriteLine(ex);
+        }
+        finally
+        {
+            isBusy = false;
+            StateHasChanged();
+        }
     }
 
+    private class LoginVm
+    {
+        [Required(ErrorMessage = "El. paštas privalomas.")]
+        [RegularExpression(@"^[^\s@]+@[^\s@]+\.[A-Za-z]{2,}$", ErrorMessage = "Neteisingas el. pašto formatas.")]
+        public string Email { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Slaptažodis privalomas.")]
+        public string Password { get; set; } = string.Empty;
+    }
 }

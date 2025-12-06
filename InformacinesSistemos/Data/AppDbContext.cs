@@ -8,5 +8,7 @@ namespace InformacinesSistemos.Data
         public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
 
         public DbSet<User> Customers { get; set; }
+        public DbSet<Game> Games { get; set; }
     }
 }
+ 
