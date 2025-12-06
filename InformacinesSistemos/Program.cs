@@ -1,8 +1,13 @@
 ﻿using InformacinesSistemos.Components;
+using InformacinesSistemos.Data;
 using InformacinesSistemos.Services;
 using Microsoft.AspNetCore.Components.Authorization;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 // Add services to the container.
 builder.Services.AddScoped<IGameService, InMemoryGameService>();
@@ -20,9 +25,6 @@ builder.Services.AddCascadingAuthenticationState();
 
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
-
-
-
 
 var app = builder.Build();
 
