@@ -1,4 +1,4 @@
-﻿@page "/games/{id:int}"
+﻿@page "/games/{Id:int}"
 @using InformacinesSistemos.Models
 @inject InformacinesSistemos.Services.IGameService GameService
 @inject InformacinesSistemos.Services.ICartService CartService
@@ -27,8 +27,8 @@ else
 
         <div class="gd-meta">
             <div><strong>Kūrėjas:</strong> @game.Kurejas</div>
-            <div><strong>Žaidėjų skaičius:</strong> @game.ZaidejuSkaicius</div>
-            <div><strong>Amžiaus cenzas:</strong> @game.AmziausCenzas+</div>
+            <div><strong>Žaidėjų skaičius:</strong> @(game.Stalo?.ZaidejuSkaicius ?? game.ZaidejuSkaicius)</div>
+            <div><strong>Amžiaus cenzas:</strong> @(game.Stalo?.AmziausCenzas ?? game.AmziausCenzas)+</div>
             <div><strong>Reitingas:</strong> @game.Reitingas.ToString("0.0")</div>
             <div><strong>Žanras:</strong> @game.Zanras?.Pavadinimas</div>
         </div>
@@ -78,7 +78,7 @@ else
     private static string GetTypeLabel(Zaidimas g)
         => g.Kompiuterinis != null ? "Kompiuterinis žaidimas"
          : g.Stalo != null ? "Stalo žaidimas"
-                                  : "Žaidimas";
+         : "Žaidimas";
 
     private void AddToCart()
     {

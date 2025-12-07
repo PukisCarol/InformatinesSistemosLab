@@ -4,6 +4,7 @@ using InformacinesSistemos.Data;
 using InformacinesSistemos.Services;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
+using Microsoft.AspNetCore.Cors.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -25,6 +26,9 @@ builder.Services.AddCascadingAuthenticationState();
 // Registracijos ir prisijungimo servisai
 builder.Services.AddScoped<IRegistrationService, PgRegistrationService>();
 builder.Services.AddScoped<ILoginService, PgLoginService>();
+builder.Services.AddScoped<IGameService, PgGamesService>();
+builder.Services.AddScoped<ICartService, InMemoryCartService>(); // ← FIXES YOUR CART ERROR
+builder.Services.AddScoped<IUserService, PgUserService>(); // ← FIXES YOUR CART ERROR
 
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();

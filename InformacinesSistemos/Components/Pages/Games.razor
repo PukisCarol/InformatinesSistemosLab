@@ -42,8 +42,8 @@ else
                 </div>
                 <h5>@g.Aprasymas</h5>
                 <div class="game-meta">
-                    <span>@g.Kurejas</span>
-                    <span>@g.ZaidejuSkaicius žaidėjai</span>
+                    <span>@g.Kurejas |</span>
+                    <span>@g.ZaidejuSkaicius žaidėjai |</span>
                     <span>@($"Reitingas: {g.Reitingas:0.0}")</span>
                 </div>
                 <div class="game-actions">
@@ -99,7 +99,17 @@ else
 
     private async Task LoadGamesFromService()
     {
-        allGames = await GameService.GetAllAsync();
+        try
+        {
+            allGames = await GameService.GetAllAsync();
+
+            Console.WriteLine($"Loaded games: {(allGames == null ? "NULL" : allGames.Count.ToString())}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("ERROR while loading games: " + ex.Message);
+            throw;
+        }
     }
 
     private void ApplyFilters()

@@ -3,6 +3,7 @@
 @using Microsoft.AspNetCore.Components.Forms
 @using Microsoft.AspNetCore.Components.Authorization
 @inject InformacinesSistemos.Services.IGameService GameService
+@inject InformacinesSistemos.Services.IUserService UserService
 @inject AuthenticationStateProvider AuthStateProvider
 @inject NavigationManager Nav
 
@@ -17,9 +18,7 @@
 }
 else
 {
-    <p>
-        Naujas žaidimas bus priskirtas jūsų paskyrai (<strong>@currentUserEmail</strong>).
-    </p>
+    <p>Naujas žaidimas bus priskirtas jūsų paskyrai (<strong>@currentUserEmail</strong>).</p>
 
     <EditForm Model="model" OnValidSubmit="HandleValidSubmit">
         <DataAnnotationsValidator />
@@ -47,22 +46,21 @@ else
             </label>
 
             <label>
-                Amžiaus cenzas
-                <InputNumber TValue="int?" @bind-Value="model.AmziausCenzas" />
-            </label>
-
-
-            <label>
-                Žaidėjų skaičius
-                <InputText @bind-Value="model.ZaidejuSkaicius" />
-            </label>
-
-            <label>
                 Žaidimo tipas
                 <select @bind="model.Tipas">
                     <option value="Kompiuterinis">Kompiuterinis žaidimas</option>
                     <option value="Stalo">Stalo žaidimas</option>
                 </select>
+            </label>
+
+            <label>
+                Amžiaus cenzas
+                <InputNumber TValue="int?" @bind-Value="model.AmziausCenzas" />
+            </label>
+
+            <label>
+                Žaidėjų skaičius
+                <InputText @bind-Value="model.ZaidejuSkaicius" />
             </label>
 
             @if (model.Tipas == "Kompiuterinis")
@@ -81,7 +79,6 @@ else
                         Užimama vieta diske (GB)
                         <InputNumber TValue="double?" @bind-Value="pc.UzimamaVietaDiske" />
                     </label>
-
                     <label>
                         Sisteminiai reikalavimai
                         <InputText @bind-Value="pc.SisteminiaiReikalavimai" />
@@ -111,11 +108,6 @@ else
                     <label>
                         Svoris (kg)
                         <InputNumber TValue="double?" @bind-Value="board.Svoris" />
-                    </label>
-
-                    <label>
-                        Svoris (kg)
-                        <InputNumber @bind-Value="board.Svoris" />
                     </label>
                 </div>
             }
@@ -155,25 +147,26 @@ else
         if (!isAuthenticated || string.IsNullOrWhiteSpace(currentUserEmail))
             return;
 
-        var owner = new Naudotojas
+        // Get user from DB
+        var loggedInUser = await UserService.GetByEmailAsync(currentUserEmail);
+        if (loggedInUser == null)
         {
-            NaudotojasId = 999,
-            ElPastas = currentUserEmail,
-            Vardas = "Naudotojas"
-        };
+            successMessage = "Nepavyko rasti prisijungusio naudotojo duomenų.";
+            return;
+        }
 
         var game = new Zaidimas
         {
             Kaina = model.Kaina ?? 0,
             Reitingas = model.Reitingas ?? 0,
-            AmziausCenzas = model.AmziausCenzas ?? 0,
             Kurejas = model.Kurejas,
-            ZaidejuSkaicius = model.ZaidejuSkaicius,
             Aprasymas = model.Aprasymas,
+            AmziausCenzas = model.AmziausCenzas ?? 0,
+            ZaidejuSkaicius = model.ZaidejuSkaicius,
             ZanroId = 0,
             Zanras = null,
-            SavininkoId = owner.NaudotojasId,
-            Savininkas = owner
+            SavininkoId = loggedInUser.NaudotojasId,
+            Savininkas = loggedInUser
         };
 
         if (model.Tipas == "Kompiuterinis")
@@ -191,6 +184,8 @@ else
         {
             game.Stalo = new StaloZaidimas
             {
+                AmziausCenzas = model.AmziausCenzas ?? 0,
+                ZaidejuSkaicius = model.ZaidejuSkaicius,
                 Ilgis = board.Ilgis ?? 0,
                 Plotis = board.Plotis ?? 0,
                 Aukstis = board.Aukstis ?? 0,
@@ -200,16 +195,19 @@ else
             game.Kompiuterinis = null;
         }
 
-        var created = await GameService.AddAsync(game);
-
-        successMessage = $"Žaidimas pridėtas (ID: {created.ZaidimoId}).";
-        Nav.NavigateTo("/mygames");
+        try
+        {
+            var created = await GameService.AddAsync(game);
+            successMessage = $"Žaidimas pridėtas (ID: {created.ZaidimoId}).";
+            Nav.NavigateTo("/mygames");
+        }
+        catch (Exception ex)
+        {
+            successMessage = $"Klaida pridedant žaidimą: {ex.Message}";
+        }
     }
 
-    private void GoBack()
-    {
-        Nav.NavigateTo("/mygames");
-    }
+    private void GoBack() => Nav.NavigateTo("/mygames");
 
     private class GameFormModel
     {
@@ -217,11 +215,10 @@ else
         public string Kurejas { get; set; } = string.Empty;
         public double? Kaina { get; set; } = null;
         public double? Reitingas { get; set; } = 5;
-        public int? AmziausCenzas { get; set; } = null;
-        public string ZaidejuSkaicius { get; set; } = string.Empty;
         public string Tipas { get; set; } = "Kompiuterinis";
+        public int? AmziausCenzas { get; set; }
+        public string ZaidejuSkaicius { get; set; } = string.Empty;
     }
-
 
     private class PcFormModel
     {

@@ -5,17 +5,26 @@
 // =====================
 public class Naudotojas
 {
-    public int NaudotojasId { get; set; }
+    // Primary key
+    public int AsmensKodas { get; set; }
+
+    // Optional: keep NaudotojasId as an alias if you want
+    public int NaudotojasId
+    {
+        get => AsmensKodas;
+        set => AsmensKodas = value;
+    }
 
     public string Vardas { get; set; } = null!;
     public string Pavarde { get; set; } = null!;
     public string Slaptazodis { get; set; } = null!;
-    public int AsmensKodas { get; set; }
     public string TelefonoNumeris { get; set; } = null!;
     public string ElPastas { get; set; } = null!;
-    public string Role { get; set; } = "Naudotojas";
+    public string Role { get; set; } = null!;
     public DateTime RegistracijosData { get; set; }
-    public string PaskirosBusena { get; set; } = "Aktyvi";
+    public string PaskirosBusena { get; set; } = null!;
+
+    public int fk_TeisesTeisesId { get; set; }
 
     // Navigacija
     public ICollection<Zaidimas> ParduodamiNuomojamiZaidimai { get; set; } = new List<Zaidimas>();
@@ -83,6 +92,8 @@ public class KompiuterinisZaidimas
 public class StaloZaidimas
 {
     public int StaloZaidimoId { get; set; } // = ZaidimoId (1:1)
+    public int AmziausCenzas { get; set; }
+    public string ZaidejuSkaicius { get; set; } = null!;
     public double Ilgis { get; set; }
     public double Plotis { get; set; }
     public double Aukstis { get; set; }
@@ -90,7 +101,6 @@ public class StaloZaidimas
     public double Svoris { get; set; }
 
     public int ZaidimoId { get; set; }
-    public Zaidimas? Zaidimas { get; set; }
 }
 
 // =====================

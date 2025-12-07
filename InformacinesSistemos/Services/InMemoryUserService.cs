@@ -95,4 +95,9 @@ public class InMemoryUserService : IUserService
 
         return Task.CompletedTask;
     }
+
+    public Task<Naudotojas?> GetByEmailAsync(string email)
+    {
+        throw new NotImplementedException();
+    }
 }
