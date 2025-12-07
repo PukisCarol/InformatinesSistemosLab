@@ -13,7 +13,10 @@ public class PgUserService : IUserService
             ?? throw new InvalidOperationException("Nerasta ConnectionStrings:DefaultConnection konfigūracija.");
     }
 
-    // Get all users
+    // ======================================================
+    // Bendri metodai
+    // ======================================================
+
     public async Task<List<Naudotojas>> GetAllAsync()
     {
         var users = new List<Naudotojas>();
@@ -21,11 +24,19 @@ public class PgUserService : IUserService
         await using var conn = new NpgsqlConnection(_connString);
         await conn.OpenAsync();
 
-        var sql = @"
-            SELECT *
-            FROM naudotojas
-            ORDER BY paskyrosbusena, role, vardas;
-        ";
+        var sql = """
+            SELECT vardas,
+                   pavarde,
+                   slaptažodis,
+                   asmenskodas,
+                   telefononumeris,
+                   epastas,
+                   role,
+                   registracijosdata,
+                   paskyrosbusena,
+                   fk_teisesteisesid
+            FROM naudotojas;
+            """;
 
         await using var cmd = new NpgsqlCommand(sql, conn);
         await using var reader = await cmd.ExecuteReaderAsync();
@@ -37,45 +48,54 @@ public class PgUserService : IUserService
 
         return users;
     }
-
-    // Get user by email
-    public async Task<Naudotojas?> GetByEmailAsync(string email)
+    public async Task UpdatePasswordAsync(int naudotojasId, string newPassword)
     {
         await using var conn = new NpgsqlConnection(_connString);
         await conn.OpenAsync();
 
-        var sql = "SELECT * FROM naudotojas WHERE epastas = @email LIMIT 1;";
+        var sql = """
+        UPDATE naudotojas
+        SET slaptažodis = @pwd
+        WHERE asmenskodas = @id;
+        """;
+
         await using var cmd = new NpgsqlCommand(sql, conn);
-        cmd.Parameters.AddWithValue("@email", email);
-
-        await using var reader = await cmd.ExecuteReaderAsync();
-        if (await reader.ReadAsync())
-            return MapNaudotojas(reader);
-
-        return null;
-    }
-
-    // Update user status
-    public async Task UpdateStatusAsync(int naudotojasId, string paskyrosBusena)
-    {
-        await using var conn = new NpgsqlConnection(_connString);
-        await conn.OpenAsync();
-
-        var sql = "UPDATE naudotojas SET paskyrosbusena = @status WHERE asmenskodas = @id;";
-        await using var cmd = new NpgsqlCommand(sql, conn);
-        cmd.Parameters.AddWithValue("@status", paskyrosBusena);
+        cmd.Parameters.AddWithValue("@pwd", newPassword);   // <-- ČIA JAU ATEINA HASH
         cmd.Parameters.AddWithValue("@id", naudotojasId);
 
         await cmd.ExecuteNonQueryAsync();
     }
 
-    // Update user role
+
+    public async Task UpdateStatusAsync(int naudotojasId, string paskyrosBusena)
+    {
+        await using var conn = new NpgsqlConnection(_connString);
+        await conn.OpenAsync();
+
+        var sql = """
+            UPDATE naudotojas
+            SET paskyrosbusena = @busena
+            WHERE asmenskodas = @id;
+            """;
+
+        await using var cmd = new NpgsqlCommand(sql, conn);
+        cmd.Parameters.AddWithValue("@busena", paskyrosBusena);
+        cmd.Parameters.AddWithValue("@id", naudotojasId);
+
+        await cmd.ExecuteNonQueryAsync();
+    }
+
     public async Task UpdateRoleAsync(int naudotojasId, string role)
     {
         await using var conn = new NpgsqlConnection(_connString);
         await conn.OpenAsync();
 
-        var sql = "UPDATE naudotojas SET role = @role WHERE asmenskodas = @id;";
+        var sql = """
+            UPDATE naudotojas
+            SET role = @role
+            WHERE asmenskodas = @id;
+            """;
+
         await using var cmd = new NpgsqlCommand(sql, conn);
         cmd.Parameters.AddWithValue("@role", role);
         cmd.Parameters.AddWithValue("@id", naudotojasId);
@@ -83,20 +103,107 @@ public class PgUserService : IUserService
         await cmd.ExecuteNonQueryAsync();
     }
 
-    // Map database row to Naudotojas object
+    public async Task<Naudotojas?> GetByEmailAsync(string email)
+    {
+        await using var conn = new NpgsqlConnection(_connString);
+        await conn.OpenAsync();
+
+        var sql = """
+            SELECT vardas,
+                   pavarde,
+                   slaptažodis,
+                   asmenskodas,
+                   telefononumeris,
+                   epastas,
+                   role,
+                   registracijosdata,
+                   paskyrosbusena,
+                   fk_teisesteisesid
+            FROM naudotojas
+            WHERE epastas = @email
+            LIMIT 1;
+            """;
+
+        await using var cmd = new NpgsqlCommand(sql, conn);
+        cmd.Parameters.AddWithValue("@email", email);
+
+        await using var reader = await cmd.ExecuteReaderAsync();
+        if (await reader.ReadAsync())
+        {
+            return MapNaudotojas(reader);
+        }
+
+        return null;
+    }
+
+    // ======================================================
+    // Profilio redagavimas / paskyros šalinimas
+    // ======================================================
+
+    public async Task UpdateProfileAsync(Naudotojas user)
+    {
+        await using var conn = new NpgsqlConnection(_connString);
+        await conn.OpenAsync();
+
+        var sql = """
+            UPDATE naudotojas
+            SET vardas = @vardas,
+                pavarde = @pavarde,
+                telefononumeris = @tel,
+                epastas = @email
+            WHERE asmenskodas = @id;
+            """;
+
+        await using var cmd = new NpgsqlCommand(sql, conn);
+        cmd.Parameters.AddWithValue("@vardas", user.Vardas ?? string.Empty);
+        cmd.Parameters.AddWithValue("@pavarde", user.Pavarde ?? string.Empty);
+        cmd.Parameters.AddWithValue("@tel", user.TelefonoNumeris ?? string.Empty);
+        cmd.Parameters.AddWithValue("@email", user.ElPastas ?? string.Empty);
+        cmd.Parameters.AddWithValue("@id", user.NaudotojasId);
+
+        await cmd.ExecuteNonQueryAsync();
+    }
+
+    /// <summary>
+    /// „Ištrina“ paskyrą – pakeičia jos būseną į „Ištrinta“.
+    /// (soft delete, kad nesulūžtų užsakymai ir t.t.)
+    /// </summary>
+    public async Task DeleteAsync(int naudotojasId)
+    {
+        await using var conn = new NpgsqlConnection(_connString);
+        await conn.OpenAsync();
+
+        var sql = """
+            UPDATE naudotojas
+            SET paskyrosbusena = 'Ištrinta'
+            WHERE asmenskodas = @id;
+            """;
+
+        await using var cmd = new NpgsqlCommand(sql, conn);
+        cmd.Parameters.AddWithValue("@id", naudotojasId);
+
+        await cmd.ExecuteNonQueryAsync();
+    }
+
+    // ======================================================
+    // Pagalbinis mapperis
+    // ======================================================
+
     private static Naudotojas MapNaudotojas(NpgsqlDataReader r)
     {
         return new Naudotojas
         {
-            NaudotojasId = r.GetInt32(r.GetOrdinal("asmenskodas")), // assuming asmenskodas is PK
+            NaudotojasId = r.GetInt32(r.GetOrdinal("asmenskodas")),
             Vardas = r.GetString(r.GetOrdinal("vardas")),
             Pavarde = r.GetString(r.GetOrdinal("pavarde")),
             Slaptazodis = r.GetString(r.GetOrdinal("slaptažodis")),
-            Role = r.GetString(r.GetOrdinal("role")),
-            RegistracijosData = r.IsDBNull(r.GetOrdinal("registracijosData")) ? DateTime.MinValue : r.GetDateTime(r.GetOrdinal("registracijosData")),
-            PaskirosBusena = r.GetString(r.GetOrdinal("paskyrosbusena")),
             TelefonoNumeris = r.GetString(r.GetOrdinal("telefononumeris")),
             ElPastas = r.GetString(r.GetOrdinal("epastas")),
+            Role = r.GetString(r.GetOrdinal("role")),
+            RegistracijosData = r.IsDBNull(r.GetOrdinal("registracijosdata"))
+                ? DateTime.MinValue
+                : r.GetDateTime(r.GetOrdinal("registracijosdata")),
+            PaskirosBusena = r.GetString(r.GetOrdinal("paskyrosbusena")),
             fk_TeisesTeisesId = r.GetInt32(r.GetOrdinal("fk_teisesteisesid"))
         };
     }

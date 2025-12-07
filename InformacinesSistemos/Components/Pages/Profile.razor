@@ -1,16 +1,371 @@
 ﻿@page "/profile"
+@rendermode InteractiveServer
+
+@using InformacinesSistemos.Models
+@using InformacinesSistemos.Services
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Security.Cryptography
+
+@inject AuthenticationStateProvider AuthStateProvider
+@inject IUserService UserService
 
 <PageTitle>Mano paskyra</PageTitle>
 
 <h2>Mano paskyra</h2>
 
-<p>
-    Čia vėliau bus rodomi prisijungusio naudotojo duomenys: vardas, el. paštas, telefono numeris,
-    registracijos data ir paskyros būsena.
-</p>
+@if (!string.IsNullOrEmpty(errorMessage))
+{
+    <div class="alert alert-danger">@errorMessage</div>
+}
 
-<ul>
-    <li>Pakeisti kontaktinę informaciją</li>
-    <li>Pakeisti slaptažodį</li>
-    <li>Peržiūrėti esamus apribojimus / teises</li>
-</ul>
+@if (!string.IsNullOrEmpty(successMessage))
+{
+    <div class="alert alert-success">@successMessage</div>
+}
+
+@if (isLoading)
+{
+    <p>Kraunama...</p>
+}
+else if (currentUser is not null)
+{
+    <!-- PROFILIO DUOMENŲ LENTELĖ -->
+    <table class="profile-table">
+        <tr>
+            <th>Vardas</th>
+            <td>
+                <input @bind="vardas" />
+            </td>
+        </tr>
+        <tr>
+            <th>Pavardė</th>
+            <td>
+                <input @bind="pavarde" />
+            </td>
+        </tr>
+        <tr>
+            <th>El. paštas</th>
+            <td>
+                <input @bind="elPastas" />
+            </td>
+        </tr>
+        <tr>
+            <th>Telefono numeris</th>
+            <td>
+                <input @bind="telefonas" />
+            </td>
+        </tr>
+        <tr>
+            <th>Paskyros būsena</th>
+            <td>
+                <!-- BŪSENA TIK SKAITYMUI, NEREDAGUOJAMA -->
+                <input class="readonly-input" value="@paskyrosBusena" readonly />
+            </td>
+        </tr>
+    </table>
+
+    <div class="profile-actions">
+        <button @onclick="SaveAsync" disabled="@isSaving">
+            @(isSaving ? "Saugoma..." : "Išsaugoti pakeitimus")
+        </button>
+    </div>
+
+    <hr />
+
+    <!-- SLAPTAŽODŽIO KEITIMO LENTELĖ -->
+    <h3>Slaptažodžio keitimas</h3>
+    <p>Įveskite seną slaptažodį ir naują slaptažodį du kartus.</p>
+
+    <table class="profile-table">
+        <tr>
+            <th>Senas slaptažodis</th>
+            <td>
+                <input type="password" @bind="oldPassword" />
+            </td>
+        </tr>
+        <tr>
+            <th>Naujas slaptažodis</th>
+            <td>
+                <input type="password" @bind="newPassword" />
+            </td>
+        </tr>
+        <tr>
+            <th>Pakartokite naują slaptažodį</th>
+            <td>
+                <input type="password" @bind="newPasswordRepeat" />
+            </td>
+        </tr>
+    </table>
+
+    <div class="profile-actions">
+        <button @onclick="ChangePasswordAsync" disabled="@isChangingPassword">
+            @(isChangingPassword ? "Keičiama..." : "Pakeisti slaptažodį")
+        </button>
+    </div>
+
+    <hr />
+
+    <!-- PASKYROS IŠTRYNIMAS -->
+    <h3>Paskyros ištrynimas</h3>
+    <p>
+        Dėmesio! Paskyros ištrynimas yra negrįžtamas veiksmas.
+        Paskyros būsena bus pakeista į „Ištrinta“ ir ja nebebus galima naudotis.
+    </p>
+    <button class="btn btn-danger" @onclick="DeleteAsync" disabled="@isDeleting">
+        @(isDeleting ? "Trinama..." : "Ištrinti paskyrą")
+    </button>
+}
+
+<style>
+    .profile-table {
+        border-collapse: collapse;
+        margin-bottom: 10px;
+    }
+
+    .profile-table th {
+        text-align: left;
+        padding: 4px 10px 4px 0;
+        white-space: nowrap;
+    }
+
+    .profile-table td {
+        padding: 4px 0;
+        width: 100%;
+    }
+
+    .profile-table input {
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    .readonly-input {
+        background-color: #eee;
+    }
+
+    .profile-actions {
+        margin: 8px 0 16px 0;
+    }
+</style>
+
+@code {
+    private Naudotojas? currentUser;
+
+    private string vardas = string.Empty;
+    private string pavarde = string.Empty;
+    private string elPastas = string.Empty;
+    private string telefonas = string.Empty;
+    private string paskyrosBusena = string.Empty;
+
+    // slaptažodžio keitimo laukai
+    private string oldPassword = string.Empty;
+    private string newPassword = string.Empty;
+    private string newPasswordRepeat = string.Empty;
+
+    private bool isLoading = true;
+    private bool isSaving = false;
+    private bool isDeleting = false;
+    private bool isChangingPassword = false;
+
+    private string? errorMessage;
+    private string? successMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var principal = authState.User;
+
+        if (principal?.Identity == null || !principal.Identity.IsAuthenticated)
+        {
+            errorMessage = "Norėdami peržiūrėti ir redaguoti profilį, turite prisijungti.";
+            isLoading = false;
+            return;
+        }
+
+        var email = principal.Identity.Name;
+        if (string.IsNullOrWhiteSpace(email))
+        {
+            errorMessage = "Nepavyko nustatyti naudotojo el. pašto.";
+            isLoading = false;
+            return;
+        }
+
+        currentUser = await UserService.GetByEmailAsync(email);
+
+        if (currentUser == null)
+        {
+            errorMessage = "Naudotojas nerastas duomenų bazėje.";
+            isLoading = false;
+            return;
+        }
+
+        // užpildom formą
+        vardas = currentUser.Vardas;
+        pavarde = currentUser.Pavarde;
+        elPastas = currentUser.ElPastas;
+        telefonas = currentUser.TelefonoNumeris;
+        paskyrosBusena = currentUser.PaskirosBusena;
+
+        isLoading = false;
+    }
+
+    private async Task SaveAsync()
+    {
+        errorMessage = null;
+        successMessage = null;
+
+        if (currentUser == null)
+            return;
+
+        if (string.IsNullOrWhiteSpace(vardas) ||
+            string.IsNullOrWhiteSpace(pavarde) ||
+            string.IsNullOrWhiteSpace(elPastas))
+        {
+            errorMessage = "Duomenys netinkami. Vardas, pavardė ir el. paštas yra privalomi.";
+            return;
+        }
+
+        currentUser.Vardas = vardas;
+        currentUser.Pavarde = pavarde;
+        currentUser.ElPastas = elPastas;
+        currentUser.TelefonoNumeris = telefonas;
+
+        isSaving = true;
+        try
+        {
+            await UserService.UpdateProfileAsync(currentUser);
+            successMessage = "Naudotojo duomenys sėkmingai atnaujinti.";
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine(ex);
+            errorMessage = "Įvyko klaida atnaujinant duomenis.";
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private async Task ChangePasswordAsync()
+    {
+        errorMessage = null;
+        successMessage = null;
+
+        if (currentUser == null)
+            return;
+
+        if (string.IsNullOrWhiteSpace(oldPassword) ||
+            string.IsNullOrWhiteSpace(newPassword) ||
+            string.IsNullOrWhiteSpace(newPasswordRepeat))
+        {
+            errorMessage = "Užpildykite visus slaptažodžio laukus.";
+            return;
+        }
+
+        if (newPassword != newPasswordRepeat)
+        {
+            errorMessage = "Naujas slaptažodis ir jo pakartojimas nesutampa.";
+            return;
+        }
+
+        // 🔐 SENĄ SLAPTAŽODĮ TIKRINAM PRIEŠ HASH'Ą SAUGOMĄ DB
+        if (!VerifyPassword(oldPassword, currentUser.Slaptazodis))
+        {
+            errorMessage = "Senas slaptažodis neteisingas.";
+            return;
+        }
+
+        isChangingPassword = true;
+        try
+        {
+            // 🔐 NAUJĄ SLAPTAŽODĮ HASH'UOJAM TAIP PAT KAIP REGISTRACIJOJE
+            var hashed = HashPassword(newPassword);
+
+            await UserService.UpdatePasswordAsync(currentUser.NaudotojasId, hashed);
+
+            // atsinaujinam lokaliai, kad kitas Verify naudotų naują hash'ą
+            currentUser.Slaptazodis = hashed;
+
+            successMessage = "Slaptažodis sėkmingai pakeistas.";
+            oldPassword = string.Empty;
+            newPassword = string.Empty;
+            newPasswordRepeat = string.Empty;
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine(ex);
+            errorMessage = "Nepavyko pakeisti slaptažodžio.";
+        }
+        finally
+        {
+            isChangingPassword = false;
+        }
+    }
+
+
+    private async Task DeleteAsync()
+    {
+        errorMessage = null;
+        successMessage = null;
+
+        if (currentUser == null)
+            return;
+
+        isDeleting = true;
+        try
+        {
+            await UserService.DeleteAsync(currentUser.NaudotojasId);
+            paskyrosBusena = "Ištrinta";
+            successMessage = "Paskyra pažymėta kaip „Ištrinta“. Rekomenduojama atsijungti ir nebesinaudoti šia paskyra.";
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine(ex);
+            errorMessage = "Nepavyko ištrinti paskyros.";
+        }
+        finally
+        {
+            isDeleting = false;
+        }
+    }
+
+    // tas pats principas kaip PgLoginService + PgRegistrationService
+
+    private static bool VerifyPassword(string password, string stored)
+    {
+        if (string.IsNullOrWhiteSpace(stored))
+            return false;
+
+        var parts = stored.Split(':');
+        if (parts.Length != 2)
+            return false;
+
+        var salt = Convert.FromBase64String(parts[0]);
+        var expectedHash = Convert.FromBase64String(parts[1]);
+
+        using var rfc2898 = new Rfc2898DeriveBytes(password, salt, 100_000, HashAlgorithmName.SHA256);
+        var computed = rfc2898.GetBytes(32);
+
+        if (computed.Length != expectedHash.Length)
+            return false;
+
+        int diff = 0;
+        for (int i = 0; i < computed.Length; i++)
+            diff |= computed[i] ^ expectedHash[i];
+
+        return diff == 0;
+    }
+
+    private static string HashPassword(string password)
+    {
+        using var rng = RandomNumberGenerator.Create();
+        var salt = new byte[16];
+        rng.GetBytes(salt);
+
+        using var rfc2898 = new Rfc2898DeriveBytes(password, salt, 100_000, HashAlgorithmName.SHA256);
+        var hash = rfc2898.GetBytes(32);
+
+        return $"{Convert.ToBase64String(salt)}:{Convert.ToBase64String(hash)}";
+    }
+
+}

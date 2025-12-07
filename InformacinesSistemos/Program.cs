@@ -15,6 +15,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 builder.Services.AddScoped<IEmailService, SmtpEmailService>();
 
 builder.Services.AddScoped<ProtectedLocalStorage>();
+builder.Services.AddScoped<IUserService, PgUserService>();
 
 // Jūsų kiti servisai...
 builder.Services.AddScoped<SimpleAuthenticationStateProvider>();
