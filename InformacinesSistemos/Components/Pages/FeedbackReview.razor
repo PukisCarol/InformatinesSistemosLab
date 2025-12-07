@@ -5,11 +5,11 @@
 @inject InformacinesSistemos.Services.IReviewService ReviewService
 @inject NavigationManager Nav
 
-<PageTitle>Naudotojų peržiūra</PageTitle>
+<PageTitle>Atsiliepimų peržiūra</PageTitle>
 
 <AuthorizeView Roles="Moderator,Admin">
     <Authorized>
-        <h2>Naudotojų peržiūra ir valdymas</h2>
+        <h2>Atsiliepimų peržiūra ir valdymas</h2>
 
         @if (reviews is null)
         {
@@ -24,10 +24,9 @@
             <table class="users-table">
                 <thead>
                     <tr>
-                        <th>Vardas</th>
+                        <th>Data</th>
                         <th>Atsiliepimas</th>
-                        <th>Ivertinimas</th>
-                        <th>Tvirtinti</th>
+                        <th>Įvertinimas</th>
                         <th>Trinti</th>
                     </tr>
                 </thead>
@@ -35,20 +34,13 @@
                     @foreach (var u in reviews)
                     {
                         <tr>
-                            <td>@u.Data </td>
+                            <td>@u.Data.ToShortDateString()</td>
                             <td>@u.AtsiliepimoTekstas</td>
                             <td>@u.Ivertinimas</td>
                             <td>
-                                <button class="primary-btn small"
-                                        @onclick="() => AcceptReview(u.AtsiliepimoId)">
-                                        Tvirtinti
-                                </button>
-                            </td>
-
-                            <td>
                                 <button class="outline-btn small danger"
                                         @onclick="() => DeclineReview(u.AtsiliepimoId)">
-                                        Trinti
+                                    Trinti
                                 </button>
                             </td>
                         </tr>
@@ -67,16 +59,38 @@
 
     protected override async Task OnInitializedAsync()
     {
+        await LoadReviews();
+    }
+
+    private async Task LoadReviews()
+    {
         reviews = await ReviewService.GetAllAsync();
     }
 
     private async Task AcceptReview(int atsiliepimoId)
     {
-        
+        // If you add a "Priimtas" column later, uncomment this:
+        // await ReviewService.AcceptReviewAsync(atsiliepimoId);
+        // await LoadReviews();
+
+        // Temporary placeholder:
+        Console.WriteLine($"Accepted review ID: {atsiliepimoId}");
     }
 
     private async Task DeclineReview(int atsiliepimoId)
     {
-        
+        if (reviews == null) return;
+
+        var confirm = await JS.InvokeAsync<bool>("confirm", "Ar tikrai norite trinti atsiliepimą?");
+        if (!confirm) return;
+
+        await ReviewService.DeleteReviewAsync(atsiliepimoId);
+
+        // Remove from the list so UI updates immediately
+        var review = reviews.FirstOrDefault(r => r.AtsiliepimoId == atsiliepimoId);
+        if (review != null)
+            reviews.Remove(review);
     }
+
+    [Inject] private IJSRuntime JS { get; set; } = default!;
 }

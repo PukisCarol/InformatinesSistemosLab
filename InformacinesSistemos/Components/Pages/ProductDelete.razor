@@ -2,6 +2,7 @@
 @using InformacinesSistemos.Models
 @inject InformacinesSistemos.Services.IGameService GameService
 @inject NavigationManager Nav
+@inject InformacinesSistemos.Services.SimpleAuthenticationStateProvider AuthProvider
 
 <PageTitle>Ištrinti žaidimą</PageTitle>
 
@@ -44,11 +45,18 @@ else
     private Zaidimas? game;
     private bool isLoading = true;
     private string? successMessage;
+    private bool isModeratorOrAdmin = false;
 
     protected override async Task OnParametersSetAsync()
     {
         isLoading = true;
         game = await GameService.GetByIdAsync(Id);
+
+        // Check roles
+        var authState = await AuthProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        isModeratorOrAdmin = user.IsInRole("Moderator") || user.IsInRole("Admin");
+
         isLoading = false;
     }
 
@@ -60,7 +68,9 @@ else
             {
                 await GameService.DeleteAsync(game.ZaidimoId);
                 successMessage = "Žaidimas sėkmingai ištrintas.";
-                Nav.NavigateTo("/mygames");
+
+                // Navigate depending on role
+                GoBack();
             }
             catch (Exception ex)
             {
@@ -71,6 +81,9 @@ else
 
     private void GoBack()
     {
-        Nav.NavigateTo("/mygames");
+        if (isModeratorOrAdmin)
+            Nav.NavigateTo("/moderation/games"); // moderator/admin return page
+        else
+            Nav.NavigateTo("/mygames");          // normal user return page
     }
 }

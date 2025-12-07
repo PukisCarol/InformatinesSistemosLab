@@ -8,6 +8,7 @@
 @inject AuthenticationStateProvider AuthStateProvider
 @inject NavigationManager Nav
 
+
 <PageTitle>Redaguoti žaidimą</PageTitle>
 
 <h2>Redaguoti žaidimą</h2>
@@ -177,6 +178,7 @@ else
     private string? successMessage;
     private List<Zanras> genres = new();
     private int selectedGenreId;
+    private bool isModeratorOrAdmin = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -184,6 +186,9 @@ else
         var user = authState.User;
         isAuthenticated = user.Identity?.IsAuthenticated ?? false;
         currentUserEmail = user.Identity?.Name;
+
+        // Check if moderator or admin
+        isModeratorOrAdmin = user.IsInRole("Moderator") || user.IsInRole("Admin");
 
         genres = await GameService.GetAllGenresAsync();
 
@@ -284,7 +289,11 @@ else
         {
             await GameService.UpdateAsync(game); // Make sure you have UpdateAsync in your service
             successMessage = "Žaidimas sėkmingai atnaujintas.";
-            Nav.NavigateTo("/mygames");
+            // Navigate based on role
+            if (isModeratorOrAdmin)
+                Nav.NavigateTo("/moderation/games");
+            else
+                Nav.NavigateTo("/mygames");
         }
         catch (Exception ex)
         {
@@ -292,8 +301,13 @@ else
         }
     }
 
-    private void GoBack() => Nav.NavigateTo("/mygames");
-
+    private void GoBack()
+    {
+        if (isModeratorOrAdmin)
+            Nav.NavigateTo("/moderation/games"); // Or /admin/games if you prefer
+        else
+            Nav.NavigateTo("/mygames");
+    }
     private class GameFormModel
     {
         [Required(ErrorMessage = "Pavadinimas yra privalomas.")]

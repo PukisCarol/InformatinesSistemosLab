@@ -42,18 +42,27 @@
                         <th>Reitingas</th>
                         <th>Kurejas</th>
                         <th>Zanras</th>
-                        <th>Savininkas</th>
+                        <th>Savininkas</th> 
+                        <th>Veiksmai</th>
                     </tr>
                 </thead>
                 <tbody>
                     @foreach (var u in allGames)
                     {
                         <tr>
-                            <td>@u.Kaina </td>
+                            <td>@u.Kaina</td>
                             <td>@u.Reitingas</td>
                             <td>@u.Kurejas</td>
-                            <td>@u.Zanras.Pavadinimas</td>
-                            <td>@u.Savininkas.ElPastas</td>
+                            <td>@u.Zanras?.Pavadinimas</td>
+                            <td>@u.Savininkas?.ElPastas</td>
+                            <td>
+                                <button class="primary-btn small-btn" @onclick="@(() => Nav.NavigateTo($"/product-edit/{u.ZaidimoId}"))">
+                                    Redaguoti
+                                </button>
+                                <button class="danger-btn small-btn" @onclick="@(() => Nav.NavigateTo($"/product-delete/{u.ZaidimoId}"))">
+                                    Ištrinti
+                                </button>
+                            </td>
                         </tr>
                     }
                 </tbody>

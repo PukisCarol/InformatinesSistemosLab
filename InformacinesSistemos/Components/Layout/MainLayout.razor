@@ -65,7 +65,15 @@
                     <div class="nav-section">
                         <span class="nav-section-title">Prekių ir mokėjimo dalis:</span>
                         <NavLink href="/games" class="nav-link">Peržiūrėti prekes</NavLink>
-                        <NavLink href="/mygames" class="nav-link">Mano parduodami žaidimai</NavLink>
+
+                        @* Only show "Mano parduodami žaidimai" for normal users *@
+                        @if (string.IsNullOrWhiteSpace(role) ||
+                                                (!role.Contains("admin", StringComparison.OrdinalIgnoreCase) &&
+                                                !role.Contains("moderator", StringComparison.OrdinalIgnoreCase)))
+                        {
+                            <NavLink href="/mygames" class="nav-link">Mano parduodami žaidimai</NavLink>
+                        }
+
                         <NavLink href="/cart" class="nav-link">Krepšelis</NavLink>
                         <NavLink href="/checkout" class="nav-link">Apmokėjimas</NavLink>
                     </div>
