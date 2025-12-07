@@ -1,4 +1,5 @@
 ﻿using InformacinesSistemos.Models;
+using Microsoft.EntityFrameworkCore;
 using Npgsql;
 
 namespace InformacinesSistemos.Services
@@ -97,13 +98,14 @@ namespace InformacinesSistemos.Services
             // Insert main game
             var sqlGame = @"
                 INSERT INTO zaidimas
-                (kaina, reitingas, amziauscenzas, kurejas, zaidejuskaicius, aprasymas, fk_naudotojasasmenskodas)
-                VALUES (@k, @r, @a, @kr, @zs, @ap, @sid)
+                (pradžia, kaina, reitingas, amziauscenzas, kurejas, zaidejuskaicius, aprasymas, fk_naudotojasasmenskodas)
+                VALUES (@pr, @k, @r, @a, @kr, @zs, @ap, @sid)
                 RETURNING zaidimoid;
             ";
 
             await using (var cmd = new NpgsqlCommand(sqlGame, conn))
             {
+                cmd.Parameters.AddWithValue("@pr", game.IsleidimoData);
                 cmd.Parameters.AddWithValue("@k", game.Kaina);
                 cmd.Parameters.AddWithValue("@r", game.Reitingas);
                 cmd.Parameters.AddWithValue("@a", game.AmziausCenzas);
@@ -162,6 +164,7 @@ namespace InformacinesSistemos.Services
         {
             var game = new Zaidimas
             {
+                IsleidimoData = r.GetDateTime(r.GetOrdinal("pradžia")),
                 ZaidimoId = r.GetInt32(r.GetOrdinal("zaidimoid")),
                 Kaina = r.GetDouble(r.GetOrdinal("kaina")),
                 Reitingas = r.GetDouble(r.GetOrdinal("reitingas")),
@@ -224,6 +227,46 @@ namespace InformacinesSistemos.Services
             }
 
             return game;
+        }
+
+        public async Task<List<Zanras>> GetAllGenresAsync()
+        {
+            var results = new List<Zanras>();
+
+            await using var conn = new NpgsqlConnection(_connString);
+            await conn.OpenAsync();
+
+            var sql = "SELECT zanroid, pavadinimas FROM zanras";
+
+            await using var cmd = new NpgsqlCommand(sql, conn);
+            await using var reader = await cmd.ExecuteReaderAsync();
+
+            while (await reader.ReadAsync())
+            {
+                results.Add(new Zanras
+                {
+                    ZanroId = reader.GetInt32(0),
+                    Pavadinimas = reader.GetString(1)
+                });
+            }
+
+            return results;
+        }
+        public async Task AddGenreToGameAsync(int gameId, int genreId)
+        {
+            await using var conn = new NpgsqlConnection(_connString);
+            await conn.OpenAsync();
+
+            var sql = @"
+        INSERT INTO zanraspriklauso (fk_zaidimaszaidimoid, fk_zanraszanroid)
+        VALUES (@gid, @zid);
+    ";
+
+            await using var cmd = new NpgsqlCommand(sql, conn);
+            cmd.Parameters.AddWithValue("@gid", gameId);
+            cmd.Parameters.AddWithValue("@zid", genreId);
+
+            await cmd.ExecuteNonQueryAsync();
         }
 
         public Task UpdateAsync(Zaidimas game)

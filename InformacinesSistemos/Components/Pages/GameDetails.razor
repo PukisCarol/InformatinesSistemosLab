@@ -27,6 +27,7 @@ else
 
         <div class="gd-meta">
             <div><strong>Kūrėjas:</strong> @game.Kurejas</div>
+            <div><strong>Išleidimo data:</strong> @game.IsleidimoData.ToString("yyyy-MM-dd")</div>
             <div><strong>Žaidėjų skaičius:</strong> @(game.Stalo?.ZaidejuSkaicius ?? game.ZaidejuSkaicius)</div>
             <div><strong>Amžiaus cenzas:</strong> @(game.Stalo?.AmziausCenzas ?? game.AmziausCenzas)+</div>
             <div><strong>Reitingas:</strong> @game.Reitingas.ToString("0.0")</div>

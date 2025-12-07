@@ -10,4 +10,6 @@ public interface IGameService
     // Nauji metodai
     Task<Zaidimas> AddAsync(Zaidimas game);
     Task UpdateAsync(Zaidimas game);
+    Task<List<Zanras>> GetAllGenresAsync();
+    Task AddGenreToGameAsync(int gameId, int genreId);
 }
