@@ -6,6 +6,7 @@
 @inject InformacinesSistemos.Services.IUserService UserService
 @inject AuthenticationStateProvider AuthStateProvider
 @inject NavigationManager Nav
+@using System.ComponentModel.DataAnnotations
 
 <PageTitle>Pridėti naują žaidimą</PageTitle>
 
@@ -28,39 +29,57 @@ else
             <label>
                 Pavadinimas / aprašymas
                 <InputText @bind-Value="model.Aprasymas" />
+                <ValidationMessage For="@(() => model.Aprasymas)" />
             </label>
 
             <label>
                 Kūrėjas
                 <InputText @bind-Value="model.Kurejas" />
+                <ValidationMessage For="@(() => model.Kurejas)" />
             </label>
-
+            <label>
+                Išleidimo data
+                <InputDate @bind-Value="model.IsleidimoData" />
+                <ValidationMessage For="@(() => model.IsleidimoData)" />
+            </label>
             <label>
                 Kaina (€)
                 <InputNumber TValue="double?" @bind-Value="model.Kaina" />
+                <ValidationMessage For="@(() => model.Kaina)" />
             </label>
 
             <label>
                 Reitingas (1–5)
                 <InputNumber TValue="double?" @bind-Value="model.Reitingas" />
+                <ValidationMessage For="@(() => model.Reitingas)" />
             </label>
-
+            <label>
+                Amžiaus cenzas
+                <InputNumber TValue="int?" @bind-Value="model.AmziausCenzas" />
+                <ValidationMessage For="@(() => model.AmziausCenzas)" />
+            </label>
+            <label>
+                Žaidėjų skaičius
+                <InputText @bind-Value="model.ZaidejuSkaicius" />
+                <ValidationMessage For="@(() => model.ZaidejuSkaicius)" />
+            </label>
+            <label>
+                Žanras
+                <select @bind="selectedGenreId">
+                    <option value="">-- Pasirinkite žanrą --</option>
+                    @foreach (var g in genres)
+                    {
+                        <option value="@g.ZanroId">@g.Pavadinimas</option>
+                    }
+                </select>
+            </label>
+            
             <label>
                 Žaidimo tipas
                 <select @bind="model.Tipas">
                     <option value="Kompiuterinis">Kompiuterinis žaidimas</option>
                     <option value="Stalo">Stalo žaidimas</option>
                 </select>
-            </label>
-
-            <label>
-                Amžiaus cenzas
-                <InputNumber TValue="int?" @bind-Value="model.AmziausCenzas" />
-            </label>
-
-            <label>
-                Žaidėjų skaičius
-                <InputText @bind-Value="model.ZaidejuSkaicius" />
             </label>
 
             @if (model.Tipas == "Kompiuterinis")
@@ -70,18 +89,22 @@ else
                     <label>
                         OS
                         <InputText @bind-Value="pc.OS" />
+                        <ValidationMessage For="@(() => pc.OS)" />
                     </label>
                     <label>
                         Platforma
                         <InputText @bind-Value="pc.Platforma" />
+                        <ValidationMessage For="@(() => pc.Platforma)" />
                     </label>
                     <label>
                         Užimama vieta diske (GB)
                         <InputNumber TValue="double?" @bind-Value="pc.UzimamaVietaDiske" />
+                        <ValidationMessage For="@(() => pc.UzimamaVietaDiske)" />
                     </label>
                     <label>
                         Sisteminiai reikalavimai
                         <InputText @bind-Value="pc.SisteminiaiReikalavimai" />
+                        <ValidationMessage For="@(() => pc.UzimamaVietaDiske)" />
                     </label>
                 </div>
             }
@@ -92,22 +115,27 @@ else
                     <label>
                         Dėžės ilgis (cm)
                         <InputNumber TValue="int?" @bind-Value="board.Ilgis" />
+                        <ValidationMessage For="@(() => board.Ilgis)" />
                     </label>
                     <label>
                         Dėžės plotis (cm)
                         <InputNumber TValue="int?" @bind-Value="board.Plotis" />
+                        <ValidationMessage For="@(() => board.Plotis)" />
                     </label>
                     <label>
                         Dėžės aukštis (cm)
                         <InputNumber TValue="int?" @bind-Value="board.Aukstis" />
+                        <ValidationMessage For="@(() => board.Aukstis)" />
                     </label>
                     <label>
                         Žaidimo trukmė (min)
                         <InputNumber TValue="int?" @bind-Value="board.Trukme" />
+                        <ValidationMessage For="@(() => board.Trukme)" />
                     </label>
                     <label>
                         Svoris (kg)
                         <InputNumber TValue="double?" @bind-Value="board.Svoris" />
+                        <ValidationMessage For="@(() => board.Svoris)" />
                     </label>
                 </div>
             }
@@ -133,6 +161,8 @@ else
     private PcFormModel pc = new();
     private BoardFormModel board = new();
     private string? successMessage;
+    private List<Zanras> genres = new();
+    private int selectedGenreId;
 
     protected override async Task OnInitializedAsync()
     {
@@ -140,6 +170,8 @@ else
         var user = authState.User;
         isAuthenticated = user.Identity?.IsAuthenticated ?? false;
         currentUserEmail = user.Identity?.Name;
+
+        genres = await GameService.GetAllGenresAsync();
     }
 
     private async Task HandleValidSubmit()
@@ -157,6 +189,7 @@ else
 
         var game = new Zaidimas
         {
+            IsleidimoData = model.IsleidimoData,
             Kaina = model.Kaina ?? 0,
             Reitingas = model.Reitingas ?? 0,
             Kurejas = model.Kurejas,
@@ -199,6 +232,8 @@ else
         {
             var created = await GameService.AddAsync(game);
             successMessage = $"Žaidimas pridėtas (ID: {created.ZaidimoId}).";
+            if (selectedGenreId != 0)
+                await GameService.AddGenreToGameAsync(created.ZaidimoId, selectedGenreId);
             Nav.NavigateTo("/mygames");
         }
         catch (Exception ex)
@@ -211,29 +246,65 @@ else
 
     private class GameFormModel
     {
+        [Required(ErrorMessage = "Pavadinimas yra privalomas.")]
+        [StringLength(200, ErrorMessage = "Pavadinimas negali būti ilgesnis nei 200 simbolių.")]
         public string Aprasymas { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Kūrėjas yra privalomas.")]
         public string Kurejas { get; set; } = string.Empty;
-        public double? Kaina { get; set; } = null;
+
+        [Required(ErrorMessage = "Išleidimo data yra privaloma.")]
+        public DateTime IsleidimoData { get; set; } = DateTime.Now;
+
+        [Required(ErrorMessage = "Kaina yra privaloma.")]
+        [Range(0.1, 9999, ErrorMessage = "Kaina turi būti didesnė nei 0.")]
+        public double? Kaina { get; set; }
+
+        [Required(ErrorMessage = "Reitingas yra privalomas.")]
+        [Range(1, 5, ErrorMessage = "Reitingas turi būti tarp 1 ir 5.")]
         public double? Reitingas { get; set; } = 5;
-        public string Tipas { get; set; } = "Kompiuterinis";
+
+        [Required(ErrorMessage = "Amžiaus cenzas yra privalomas.")]
         public int? AmziausCenzas { get; set; }
+
+        [Required(ErrorMessage = "Žaidėjų skaičius yra privalomas.")]
         public string ZaidejuSkaicius { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Žaidimo tipas yra privalomas.")]
+        public string Tipas { get; set; } = "Kompiuterinis";
     }
 
     private class PcFormModel
     {
+        [Required(ErrorMessage = "OS yra privaloma.")]
         public string OS { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Platforma yra privaloma.")]
         public string Platforma { get; set; } = string.Empty;
-        public double? UzimamaVietaDiske { get; set; } = null;
+
+        [Required(ErrorMessage = "Užimama vieta diske yra privaloma.")]
+        [Range(0.1, 5000, ErrorMessage = "Vieta diske turi būti > 0.")]
+        public double? UzimamaVietaDiske { get; set; }
+
         public string SisteminiaiReikalavimai { get; set; } = string.Empty;
     }
 
     private class BoardFormModel
     {
+        [Required(ErrorMessage = "Ilgis yra privalomas.")]
         public int? Ilgis { get; set; }
+
+        [Required(ErrorMessage = "Plotis yra privalomas.")]
         public int? Plotis { get; set; }
+
+        [Required(ErrorMessage = "Aukštis yra privalomas.")]
         public int? Aukstis { get; set; }
+
+        [Required(ErrorMessage = "Trukmė yra privaloma.")]
         public int? Trukme { get; set; }
+
+        [Required(ErrorMessage = "Svoris yra privalomas.")]
+        [Range(0.1, 200, ErrorMessage = "Svoris turi būti > 0.")]
         public double? Svoris { get; set; }
     }
 }

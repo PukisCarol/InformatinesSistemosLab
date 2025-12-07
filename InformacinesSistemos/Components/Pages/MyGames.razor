@@ -50,8 +50,11 @@ else
                     <button class="outline-btn small-btn" @onclick="@(() => Nav.NavigateTo($"/games/{g.ZaidimoId}"))">
                         Peržiūrėti
                     </button>
-                    <button class="primary-btn small-btn" @onclick="@(() => Nav.NavigateTo($"/product-edit"))">
+                    <button class="primary-btn small-btn" @onclick="@(() => Nav.NavigateTo($"/product-edit/{g.ZaidimoId}"))">
                         Redaguoti
+                    </button>
+                    <button class="danger-btn small-btn" @onclick="@(() => Nav.NavigateTo($"/product-delete/{g.ZaidimoId}"))">
+                        Ištrinti
                     </button>
                 </div>
             </div>

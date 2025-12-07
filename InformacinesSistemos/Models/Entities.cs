@@ -41,6 +41,7 @@ public class Naudotojas
 public class Zaidimas
 {
     public int ZaidimoId { get; set; }
+    public DateTime IsleidimoData { get; set; }
 
     public double Kaina { get; set; }
     public double Reitingas { get; set; }
@@ -73,7 +74,11 @@ public class Zanras
 
     public ICollection<Zaidimas> Zaidimai { get; set; } = new List<Zaidimas>();
 }
-
+public class ZanrasPriklauso
+{
+    public int fk_ZaidimasZaidimoId { get; set; }
+    public int fk_ZanrasZanroId {get; set;}
+}
 // =====================
 // Kompiuteriniai ir stalo žaidimai
 // =====================

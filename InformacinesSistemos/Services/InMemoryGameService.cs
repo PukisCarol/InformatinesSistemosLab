@@ -145,4 +145,19 @@ public class InMemoryGameService : IGameService
 
         return Task.CompletedTask;
     }
+
+    public Task<List<Zanras>> GetAllGenresAsync()
+    {
+        throw new NotImplementedException();
+    }
+
+    public Task AddGenreToGameAsync(int gameId, int genreId)
+    {
+        throw new NotImplementedException();
+    }
+
+    public Task DeleteAsync(int id)
+    {
+        throw new NotImplementedException();
+    }
 }

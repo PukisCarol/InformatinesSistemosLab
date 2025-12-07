@@ -1,0 +1,76 @@
+﻿@page "/product-delete/{Id:int}"
+@using InformacinesSistemos.Models
+@inject InformacinesSistemos.Services.IGameService GameService
+@inject NavigationManager Nav
+
+<PageTitle>Ištrinti žaidimą</PageTitle>
+
+<h2>Ištrinti žaidimą</h2>
+
+@if (isLoading)
+{
+    <p>Kraunama...</p>
+}
+else if (game == null)
+{
+    <p>Žaidimas nerastas.</p>
+    <button class="outline-btn" @onclick="GoBack">Grįžti</button>
+}
+else
+{
+    <p>Ar tikrai norite ištrinti šį žaidimą?</p>
+
+    <div class="game-details">
+        <h3>@game.Aprasymas</h3>
+        <p><strong>Kūrėjas:</strong> @game.Kurejas</p>
+        <p><strong>Kaina:</strong> @game.Kaina €</p>
+        <p><strong>Tipas:</strong> @(game.Kompiuterinis != null ? "Kompiuterinis" : "Stalo")</p>
+    </div>
+
+    <div class="form-actions">
+        <button class="outline-btn" @onclick="GoBack">Atšaukti</button>
+        <button class="danger-btn" @onclick="DeleteGame">Ištrinti</button>
+    </div>
+
+    @if (!string.IsNullOrEmpty(successMessage))
+    {
+        <p class="success-msg">@successMessage</p>
+    }
+}
+
+@code {
+    [Parameter] public int Id { get; set; }
+
+    private Zaidimas? game;
+    private bool isLoading = true;
+    private string? successMessage;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        isLoading = true;
+        game = await GameService.GetByIdAsync(Id);
+        isLoading = false;
+    }
+
+    private async Task DeleteGame()
+    {
+        if (game != null)
+        {
+            try
+            {
+                await GameService.DeleteAsync(game.ZaidimoId);
+                successMessage = "Žaidimas sėkmingai ištrintas.";
+                Nav.NavigateTo("/mygames");
+            }
+            catch (Exception ex)
+            {
+                successMessage = $"Klaida trinant žaidimą: {ex.Message}";
+            }
+        }
+    }
+
+    private void GoBack()
+    {
+        Nav.NavigateTo("/mygames");
+    }
+}
