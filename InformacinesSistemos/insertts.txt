@@ -1,0 +1,228 @@
+INSERT INTO Naudotojas
+(Vardas, Pavarde, Slaptažodis, AsmensKodas, TelefonoNumeris, Epastas,
+ Role, RegistracijosData, PaskyrosBusena, fk_TeisesTeisesId)
+VALUES
+('Jonas', 'Jonaitis', 'hashedpwd123', 1001, '860000000', 'jonas@example.com',
+ 'Klientas', '2024-01-01', 'Aktyvi', 1)
+ON CONFLICT (AsmensKodas) DO NOTHING;
+
+
+------------------------------------------------------
+-- 2. INSERT REAL COMPUTER GAMES
+------------------------------------------------------
+
+-------------------------
+-- Game 1: Minecraft
+-------------------------
+INSERT INTO Zaidimas
+(pradžia, ZaidimoId, Kaina, Reitingas, AmziausCenzas, Kurejas,
+ ZaidejuSkaicius, Aprasymas, fk_NaudotojasAsmensKodas)
+VALUES
+('2011-11-18', 2001, 26.95, 4.8, 7, 'Mojang',
+ '1-8', 'Sandbox building survival game.', 1001);
+
+INSERT INTO KompiuteriniaiZaidimai
+(UzimamaVietaDiske, SisteminiaiReikalavimai, OS,
+ KompiuterinioZaidimoId, Platforma, ZaidimoId)
+VALUES
+(1.5, '4GB RAM, Intel HD Graphics', 'Windows/macOS/Linux',
+ 3001, 'PC', 2001);
+
+
+-------------------------
+-- Game 2: The Witcher 3
+-------------------------
+INSERT INTO Zaidimas
+(pradžia, ZaidimoId, Kaina, Reitingas, AmziausCenzas, Kurejas,
+ ZaidejuSkaicius, Aprasymas, fk_NaudotojasAsmensKodas)
+VALUES
+('2015-05-19', 2002, 39.99, 4.9, 18, 'CD Projekt Red',
+ '1', 'Open-world fantasy RPG.', 1001);
+
+INSERT INTO KompiuteriniaiZaidimai
+(UzimamaVietaDiske, SisteminiaiReikalavimai, OS,
+ KompiuterinioZaidimoId, Platforma, ZaidimoId)
+VALUES
+(50, '8GB RAM, GTX 960', 'Windows',
+ 3002, 'PC', 2002);
+
+
+-------------------------
+-- Game 3: Counter-Strike 2
+-------------------------
+INSERT INTO Zaidimas
+(pradžia, ZaidimoId, Kaina, Reitingas, AmziausCenzas, Kurejas,
+ ZaidejuSkaicius, Aprasymas, fk_NaudotojasAsmensKodas)
+VALUES
+('2023-09-27', 2003, 0.00, 4.6, 16, 'Valve',
+ '5vs5', 'Competitive tactical FPS.', 1001);
+
+INSERT INTO KompiuteriniaiZaidimai
+(UzimamaVietaDiske, SisteminiaiReikalavimai, OS,
+ KompiuterinioZaidimoId, Platforma, ZaidimoId)
+VALUES
+(34, '8GB RAM, GTX 1060', 'Windows',
+ 3003, 'PC', 2003);
+
+
+------------------------------------------------------
+-- 3. INSERT REAL BOARD GAMES
+------------------------------------------------------
+
+-------------------------
+-- Board Game 1: Catan
+-------------------------
+INSERT INTO Zaidimas
+(pradžia, ZaidimoId, Kaina, Reitingas, AmziausCenzas, Kurejas,
+ ZaidejuSkaicius, Aprasymas, fk_NaudotojasAsmensKodas)
+VALUES
+('1995-01-01', 2101, 44.99, 4.7, 10, 'Klaus Teuber',
+ '3-4', 'Resource trading and settlement strategy game.', 1001);
+
+INSERT INTO StaloZaidimai
+(AmziausCenzas, ZaidejuSkaicius, Ilgis, Plotis, Aukstis,
+ Trukme, Svoris, StaloZaidimoId, ZaidimoId)
+VALUES
+(10, '3-4', 30, 30, 8, 60, 1.2, 4001, 2101);
+
+
+-------------------------
+-- Board Game 2: Ticket to Ride
+-------------------------
+INSERT INTO Zaidimas
+(pradžia, ZaidimoId, Kaina, Reitingas, AmziausCenzas, Kurejas,
+ ZaidejuSkaicius, Aprasymas, fk_NaudotojasAsmensKodas)
+VALUES
+('2004-01-01', 2102, 49.99, 4.8, 8, 'Alan R. Moon',
+ '2-5', 'Route-building train game.', 1001);
+
+INSERT INTO StaloZaidimai
+(AmziausCenzas, ZaidejuSkaicius, Ilgis, Plotis, Aukstis,
+ Trukme, Svoris, StaloZaidimoId, ZaidimoId)
+VALUES
+(8, '2-5', 30, 30, 8, 45, 1.3, 4002, 2102);
+
+
+-------------------------
+-- Board Game 3: Chess
+-------------------------
+INSERT INTO Zaidimas
+(pradžia, ZaidimoId, Kaina, Reitingas, AmziausCenzas, Kurejas,
+ ZaidejuSkaicius, Aprasymas, fk_NaudotojasAsmensKodas)
+VALUES
+('1475-01-01', 2103, 19.99, 5.0, 6, 'Unknown',
+ '2', 'Classic strategic board game.', 1001);
+
+INSERT INTO StaloZaidimai
+(AmziausCenzas, ZaidejuSkaicius, Ilgis, Plotis, Aukstis,
+ Trukme, Svoris, StaloZaidimoId, ZaidimoId)
+VALUES
+(6, '2', 40, 40, 5, 30, 1.0, 4003, 2103);
+
+-- 1. INSERT GENRES
+INSERT INTO Zanras (ZanroId, Pavadinimas) VALUES
+(1, 'Strategija'),
+(2, 'RPG'),
+(3, 'Vakarėlių žaidimas'),
+(4, 'Taktinis FPS'),
+(5, 'Šachmatai / Logika'),
+(6, 'Vakarėlių žaidimai / Linksmi užsiėmimai'),
+(7, 'Stalo žaidimai / Transportas')
+ON CONFLICT (ZanroId) DO NOTHING;
+
+-- 2. LINK GAMES TO GENRES
+-- Computer Games
+INSERT INTO ZanrasPriklauso (fk_ZaidimasZaidimoId, fk_ZanrasZanroId) VALUES
+(2001, 1), -- Minecraft -> Strategija
+(2002, 2), -- The Witcher 3 -> RPG
+(2003, 4)  -- Counter-Strike 2 -> Taktinis FPS
+ON CONFLICT (fk_ZaidimasZaidimoId, fk_ZanrasZanroId) DO NOTHING;
+
+-- Board Games
+INSERT INTO ZanrasPriklauso (fk_ZaidimasZaidimoId, fk_ZanrasZanroId) VALUES
+(2101, 1), -- Catan -> Strategija
+(2102, 7), -- Ticket to Ride -> Stalo žaidimai / Transportas
+(2103, 5)  -- Chess -> Šachmatai / Logika
+ON CONFLICT (fk_ZaidimasZaidimoId, fk_ZanrasZanroId) DO NOTHING;
+
+
+ALTER TABLE KompiuteriniaiZaidimai
+ALTER COLUMN KompiuterinioZaidimoId SET NOT NULL;
+
+-- Make existing column an identity (auto-increment)
+ALTER TABLE KompiuteriniaiZaidimai
+ALTER COLUMN KompiuterinioZaidimoId
+ADD GENERATED ALWAYS AS IDENTITY;
+
+-- If ZaidimoId is still the primary key, drop that constraint
+ALTER TABLE KompiuteriniaiZaidimai
+DROP CONSTRAINT KompiuteriniaiZaidimai_pkey;
+
+-- Set KompiuterinioZaidimoId as primary key
+ALTER TABLE KompiuteriniaiZaidimai
+ADD CONSTRAINT kompiuteriniaizaidimai_pkey PRIMARY KEY (KompiuterinioZaidimoId);
+
+-- Ensure ZaidimoId remains a foreign key
+ALTER TABLE KompiuteriniaiZaidimai
+ADD CONSTRAINT fk_zaidimas FOREIGN KEY (ZaidimoId) REFERENCES Zaidimas(ZaidimoId);
+
+
+-- Ensure StaloZaidimoId is NOT NULL
+ALTER TABLE StaloZaidimai
+ALTER COLUMN StaloZaidimoId SET NOT NULL;
+
+-- Make StaloZaidimoId an identity (auto-increment)
+ALTER TABLE StaloZaidimai
+ALTER COLUMN StaloZaidimoId
+ADD GENERATED ALWAYS AS IDENTITY;
+
+-- Drop current primary key on ZaidimoId
+ALTER TABLE StaloZaidimai
+DROP CONSTRAINT stalozaidimai_pkey;
+
+-- Set StaloZaidimoId as the new primary key
+ALTER TABLE StaloZaidimai
+ADD CONSTRAINT stalozaidimai_pkey PRIMARY KEY (StaloZaidimoId);
+
+-- Ensure ZaidimoId remains a foreign key to Zaidimas
+ALTER TABLE StaloZaidimai
+ADD CONSTRAINT fk_zaidimas FOREIGN KEY (ZaidimoId) REFERENCES Zaidimas(ZaidimoId);
+
+
+-- Teises
+ALTER TABLE Teises
+    ALTER COLUMN TeisesId ADD GENERATED ALWAYS AS IDENTITY;
+
+-- Zanras
+ALTER TABLE Zanras
+    ALTER COLUMN ZanroId ADD GENERATED ALWAYS AS IDENTITY;
+
+-- Naudotojas
+ALTER TABLE Naudotojas
+    ALTER COLUMN AsmensKodas ADD GENERATED ALWAYS AS IDENTITY;
+
+-- Nusiskundimas
+ALTER TABLE Nusiskundimas
+    ALTER COLUMN NusiskundimoId ADD GENERATED ALWAYS AS IDENTITY;
+
+-- Uzsakymas
+ALTER TABLE Uzsakymas
+    ALTER COLUMN UzsakymoId ADD GENERATED ALWAYS AS IDENTITY;
+
+-- Zaidimas
+ALTER TABLE Zaidimas
+    ALTER COLUMN ZaidimoId ADD GENERATED ALWAYS AS IDENTITY;
+
+-- Apmokejimas
+ALTER TABLE Apmokejimas
+    ALTER COLUMN SaskaitosID ADD GENERATED ALWAYS AS IDENTITY;
+
+-- Atsiliepimas
+ALTER TABLE Atsiliepimas
+    ALTER COLUMN AtsiliepimoId ADD GENERATED ALWAYS AS IDENTITY;
+
+
+ALTER TABLE Naudotojas
+ALTER COLUMN AsmensKodas DROP IDENTITY IF EXISTS;
+ALTER TABLE Naudotojas
+ALTER COLUMN AsmensKodas DROP DEFAULT;
