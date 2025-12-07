@@ -1,84 +1,150 @@
 ﻿@page "/complaints"
 @rendermode InteractiveServer
+
 @using InformacinesSistemos.Models
+@using InformacinesSistemos.Services
+@using System.Security.Claims
+@using Microsoft.AspNetCore.Components.Authorization
+@inject AuthenticationStateProvider AuthStateProvider
+@inject IUserService UserService
+@inject IEmailService EmailService
 
 <PageTitle>Nusiskundimai</PageTitle>
 
 <h2>Pateikti nusiskundimą</h2>
 
 <p>
-    Nusiskundimai bus užfiksuoti sistemoje ir (pagal ataskaitą) persiųsti el. paštu administratoriui.
-    Šiuo metu el. pašto siuntimas imituojamas.
+    Nusiskundimai bus užfiksuoti sistemoje ir išsiųsti moderatoriui el. paštu.
+    Laiškas bus siunčiamas iš tavo prisijungusios paskyros el. pašto.
 </p>
 
+@if (!string.IsNullOrEmpty(errorMessage))
+{
+    <div class="alert alert-danger">@errorMessage</div>
+}
+
+@if (!string.IsNullOrEmpty(successMessage))
+{
+    <div class="alert alert-success">@successMessage</div>
+}
+
 <div class="complaints-form">
-    <input placeholder="Tema"
-           @bind="tema" />
+    <label>Tema</label>
+    <input @bind="tema" />
 
-    <textarea placeholder="Aprašykite problemą..."
-              @bind="tekstas"></textarea>
+    <label>Nusiskundimo tekstas</label>
+    <textarea @bind="tekstas"></textarea>
 
-    <button class="primary-btn" @onclick="Submit" disabled="@IsSubmitDisabled">
-        Pateikti nusiskundimą
+    <button @onclick="SubmitAsync" disabled="@isSending">
+        @(isSending ? "Siunčiama..." : "Pateikti nusiskundimą")
     </button>
-
-    @if (!string.IsNullOrEmpty(successMessage))
-    {
-        <p class="success-msg">@successMessage</p>
-    }
 </div>
 
-@if (submitted.Any())
+@if (submitted.Count > 0)
 {
-    <h3>Jūsų pateikti nusiskundimai (šios sesijos metu)</h3>
-
-    <table class="complaints-table">
-        <thead>
-            <tr>
-                <th>Data</th>
-                <th>Tema</th>
-                <th>Statusas</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var c in submitted)
-            {
-                <tr>
-                    <td>@c.Data.ToString("yyyy-MM-dd HH:mm")</td>
-                    <td>@c.Tema</td>
-                    <td>@c.Statusas</td>
-                </tr>
-            }
-        </tbody>
-    </table>
+    <h3>Paskutiniai pateikti nusiskundimai (demonstracijai)</h3>
+    <ul>
+        @foreach (var c in submitted)
+        {
+            <li>
+                @c.Data.ToString("yyyy-MM-dd HH:mm") – @c.Tema (@c.Statusas)
+            </li>
+        }
+    </ul>
 }
 
 @code {
     private string tema = string.Empty;
     private string tekstas = string.Empty;
-    private string successMessage = string.Empty;
 
-    private List<Nusiskundimas> submitted = new();
+    private string? errorMessage;
+    private string? successMessage;
+    private bool isSending;
 
-    private bool IsSubmitDisabled => string.IsNullOrWhiteSpace(tema) || string.IsNullOrWhiteSpace(tekstas);
+    private readonly List<Nusiskundimas> submitted = new();
 
-    private void Submit()
+    private async Task SubmitAsync()
     {
+        errorMessage = null;
+        successMessage = null;
+
+        if (string.IsNullOrWhiteSpace(tema) || string.IsNullOrWhiteSpace(tekstas))
+        {
+            errorMessage = "Užpildykite temą ir nusiskundimo tekstą.";
+            return;
+        }
+
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (user?.Identity == null || !user.Identity.IsAuthenticated)
+        {
+            errorMessage = "Nusiskundimą gali pateikti tik prisijungęs naudotojas.";
+            return;
+        }
+
+        // SimpleAuthenticationStateProvider naudoja ClaimTypes.Name = el. paštas
+        var email = user.Identity.Name ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(email))
+        {
+            errorMessage = "Nepavyko nustatyti naudotojo el. pašto.";
+            return;
+        }
+
+        var naudotojas = await UserService.GetByEmailAsync(email);
+
+        var fullName = naudotojas != null
+            ? $"{naudotojas.Vardas} {naudotojas.Pavarde}".Trim()
+            : email;
+
         var complaint = new Nusiskundimas
         {
-            NusiskundimoId = submitted.Count + 1,
-            Data = DateTime.Now,
             Tema = tema,
             NusiskundimoTekstas = tekstas,
-            Statusas = "Naujas"
+            Statusas = "Naujas",
+            Data = DateTime.Now,
+            NaudotojasId = naudotojas?.NaudotojasId ?? 0
         };
 
-        submitted.Add(complaint);
+        submitted.Add(complaint); // lokaliai, jeigu nori matyti sąrašą
 
-        // Čia vėliau galėtume iškviesti el. pašto siuntimą
-        successMessage = "Nusiskundimas užregistruotas ir būtų išsiųstas administratoriui el. paštu.";
+        isSending = true;
 
-        tema = string.Empty;
-        tekstas = string.Empty;
+        try
+        {
+            var subject = $"Naujas nusiskundimas: {tema}";
+            var body = $@"
+Gautas naujas nusiskundimas.
+
+Naudotojas: {fullName} ({email})
+Pateikta: {DateTime.Now:yyyy-MM-dd HH:mm}
+
+Tema:
+{tema}
+
+Nusiskundimo tekstas:
+{tekstas}
+";
+
+            await EmailService.SendComplaintEmailAsync(
+                fromEmail: email,
+                fromName: fullName,
+                subject: subject,
+                body: body
+            );
+
+            successMessage = "Nusiskundimas užregistruotas ir išsiųstas moderatoriui el. paštu.";
+            tema = string.Empty;
+            tekstas = string.Empty;
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine(ex);
+            errorMessage = "Nusiskundimas užregistruotas, bet nepavyko išsiųsti el. laiško. Patikrink el. pašto nustatymus.";
+        }
+        finally
+        {
+            isSending = false;
+        }
     }
 }

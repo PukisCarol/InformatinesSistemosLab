@@ -12,6 +12,7 @@ var builder = WebApplication.CreateBuilder(args);
 // Jei EF naudodamas:
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+builder.Services.AddScoped<IEmailService, SmtpEmailService>();
 
 builder.Services.AddScoped<ProtectedLocalStorage>();
 
