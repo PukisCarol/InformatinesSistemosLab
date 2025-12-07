@@ -12,4 +12,5 @@ public interface IGameService
     Task UpdateAsync(Zaidimas game);
     Task<List<Zanras>> GetAllGenresAsync();
     Task AddGenreToGameAsync(int gameId, int genreId);
+    Task DeleteAsync(int id);
 }

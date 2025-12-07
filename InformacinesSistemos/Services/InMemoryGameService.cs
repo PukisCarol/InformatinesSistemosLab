@@ -155,4 +155,9 @@ public class InMemoryGameService : IGameService
     {
         throw new NotImplementedException();
     }
+
+    public Task DeleteAsync(int id)
+    {
+        throw new NotImplementedException();
+    }
 }
