@@ -85,19 +85,33 @@ public class PgUserService : IUserService
         await cmd.ExecuteNonQueryAsync();
     }
 
+    // Update user role
     public async Task UpdateRoleAsync(int naudotojasId, string role)
     {
         await using var conn = new NpgsqlConnection(_connString);
         await conn.OpenAsync();
 
-        var sql = """
-            UPDATE naudotojas
-            SET role = @role
-            WHERE asmenskodas = @id;
-            """;
+        int fkTeisesteisesId;
 
+        switch (role)
+        {
+            case "User":
+                fkTeisesteisesId = 1;
+                break;
+            case "Moderator":
+                fkTeisesteisesId = 2;
+                break;
+            case "Admin":
+                fkTeisesteisesId = 3;
+                break;
+            default:
+                throw new ArgumentException("Invalid role", nameof(role));
+        }
+
+        var sql = "UPDATE naudotojas SET role = @role, fk_teisesteisesid = @fkId WHERE asmenskodas = @id;";
         await using var cmd = new NpgsqlCommand(sql, conn);
         cmd.Parameters.AddWithValue("@role", role);
+        cmd.Parameters.AddWithValue("@fkId", fkTeisesteisesId);
         cmd.Parameters.AddWithValue("@id", naudotojasId);
 
         await cmd.ExecuteNonQueryAsync();

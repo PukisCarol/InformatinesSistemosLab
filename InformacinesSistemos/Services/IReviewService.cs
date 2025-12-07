@@ -6,5 +6,6 @@ namespace InformacinesSistemos.Services
         Task<List<Atsiliepimas>> GetAllAsync();
         Task AcceptReviewAsync(int userId);
         Task DeleteReviewAsync(int userId);
+        Task AddReviewAsync(Atsiliepimas review);
     }
 }

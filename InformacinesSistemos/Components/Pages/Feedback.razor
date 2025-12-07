@@ -1,6 +1,8 @@
 ﻿@page "/feedback"
 @rendermode InteractiveServer
 @using InformacinesSistemos.Models
+@inject InformacinesSistemos.Services.IReviewService ReviewService
+@inject InformacinesSistemos.Services.SimpleAuthenticationStateProvider AuthProvider
 
 <PageTitle>Atsiliepimai</PageTitle>
 
@@ -58,20 +60,30 @@
         string.IsNullOrWhiteSpace(tekstas) ||
         ivertinimas < 1 || ivertinimas > 5;
 
-    private void Submit()
+    private async Task Submit()
     {
-        var feedback = new Atsiliepimas
+        var authState = await AuthProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (!user.Identity?.IsAuthenticated ?? true)
         {
-            AtsiliepimoId = submitted.Count + 1,
-            Data = DateTime.Now,
-            AtsiliepimoTekstas = tekstas,
-            Ivertinimas = ivertinimas
-            // ZaidimoId ir NaudotojasId vėliau užpildysim iš DB / login
+            successMessage = "Norint pateikti atsiliepimą, turite prisijungti.";
+            return;
+        }
+
+        var newReview = new Atsiliepimas
+        {// NEVEIKIA CIA DABA
+           // Data = DateTime.Now,
+           // AtsiliepimoTekstas = tekstas,
+           // Ivertinimas = ivertinimas,
+           // ZaidimoId = /* resolve game ID from zaidimoPavadinimas */
+           // NaudotojasId = int.Parse(user.Identity.Name!) // or your logic for user ID
         };
 
-        submitted.Add(feedback);
+        await ReviewService.AddReviewAsync(newReview);
 
-        successMessage = "Atsiliepimas sėkmingai išsaugotas (šiuo metu tik sistemoje, be tikros DB).";
+        submitted.Add(newReview);
+        successMessage = "Atsiliepimas sėkmingai išsaugotas.";
 
         tekstas = string.Empty;
         zaidimoPavadinimas = string.Empty;
