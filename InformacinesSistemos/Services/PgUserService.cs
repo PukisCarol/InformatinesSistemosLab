@@ -174,16 +174,16 @@ public class PgUserService : IUserService
         await conn.OpenAsync();
 
         var sql = """
-            UPDATE naudotojas
-            SET paskyrosbusena = 'Ištrinta'
-            WHERE asmenskodas = @id;
-            """;
+        DELETE FROM naudotojas
+        WHERE asmenskodas = @id;
+        """;
 
         await using var cmd = new NpgsqlCommand(sql, conn);
         cmd.Parameters.AddWithValue("@id", naudotojasId);
 
         await cmd.ExecuteNonQueryAsync();
     }
+
 
     // ======================================================
     // Pagalbinis mapperis

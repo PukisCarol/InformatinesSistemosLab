@@ -315,19 +315,21 @@ else if (currentUser is not null)
         try
         {
             await UserService.DeleteAsync(currentUser.NaudotojasId);
-            paskyrosBusena = "Ištrinta";
-            successMessage = "Paskyra pažymėta kaip „Ištrinta“. Rekomenduojama atsijungti ir nebesinaudoti šia paskyra.";
+
+            successMessage = "Paskyra ištrinta. Naudotojo duomenys pašalinti iš sistemos.";
+            currentUser = null;           // <-- forma neberodoma
         }
         catch (Exception ex)
         {
             Console.Error.WriteLine(ex);
-            errorMessage = "Nepavyko ištrinti paskyros.";
+            errorMessage = "Nepavyko ištrinti paskyros. Patikrinkite ar nėra susijusių duomenų (užsakymų ir pan.).";
         }
         finally
         {
             isDeleting = false;
         }
     }
+
 
     // tas pats principas kaip PgLoginService + PgRegistrationService
 

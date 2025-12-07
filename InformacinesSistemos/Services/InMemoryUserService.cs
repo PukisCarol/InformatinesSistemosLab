@@ -85,15 +85,10 @@ namespace InformacinesSistemos.Services
 
         public Task DeleteAsync(int naudotojasId)
         {
-            var existing = _users.FirstOrDefault(u => u.NaudotojasId == naudotojasId);
-            if (existing != null)
-            {
-                // soft delete – kaip ir PgUserService
-                existing.PaskirosBusena = "Ištrinta";
-            }
-
+            _users.RemoveAll(u => u.NaudotojasId == naudotojasId);
             return Task.CompletedTask;
         }
+
 
         public Task UpdatePasswordAsync(int naudotojasId, string newPassword)
         {
