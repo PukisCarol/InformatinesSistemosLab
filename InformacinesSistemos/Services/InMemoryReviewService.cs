@@ -36,6 +36,11 @@ namespace InformacinesSistemos.Services
             return Task.CompletedTask;
         }
 
+        public Task AddReviewAsync(Atsiliepimas review)
+        {
+            throw new NotImplementedException();
+        }
+
         public Task DeleteReviewAsync(int reviewId)
         {
             var review = _reviews.FirstOrDefault(u => u.AtsiliepimoId == reviewId);

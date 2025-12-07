@@ -24,7 +24,10 @@ builder.Services.AddScoped<AuthenticationStateProvider>(sp =>
 
 builder.Services.AddAuthorizationCore();
 builder.Services.AddCascadingAuthenticationState();
-
+builder.Services.AddScoped<InformacinesSistemos.Services.IBankPaymentService,
+                           InformacinesSistemos.Services.BankPaymentService>();
+builder.Services.AddScoped<InformacinesSistemos.Services.IUserLookupService,
+                           InformacinesSistemos.Services.UserLookupService>();
 // Registracijos ir prisijungimo servisai
 builder.Services.AddScoped<IRegistrationService, PgRegistrationService>();
 builder.Services.AddScoped<ILoginService, PgLoginService>();
