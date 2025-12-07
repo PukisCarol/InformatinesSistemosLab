@@ -1,12 +1,12 @@
 ﻿@page "/ai-interface"
 @rendermode InteractiveServer
+@inject InformacinesSistemos.Services.IAIService AIService
 <PageTitle>Pagalba su DI</PageTitle>
 
 <h2>Pagalbos atsakiklis (DI)</h2>
 
 <p>
-    Čia naudotojas gali užduoti klausimus apie žaidimus, užsakymus ar sistemą.
-    Šiuo metu atsakymai nėra siunčiami į tikrą DI servisą – tik imituojame elgesį.
+    Užduokite klausimą apie žaidimus, užsakymus ar sistemą.
 </p>
 
 <div class="ai-form">
@@ -18,23 +18,22 @@
     </button>
 </div>
 
-@if (!string.IsNullOrWhiteSpace(lastAnswer))
-{
+
+
     <div class="ai-answer">
-        <h4>DI atsakymas (pavyzdinis):</h4>
-        <p>@lastAnswer</p>
+        <h4>DI atsakymas:</h4>
+        @lastAnswer
     </div>
-}
+
 
 @code {
     private string question = string.Empty;
-    private string lastAnswer = string.Empty;
+    private MarkupString lastAnswer = new();
 
-    private void SendQuestion()
+    private async Task SendQuestion()
     {
-        // Čia vėliau būtų tikras DI kvietimas; dabar – tiesiog demo tekstas
-        lastAnswer = "Šiuo metu pavyzdiniame režime: jūsų klausimas užfiksuotas ir būtų perduotas DI asistentui. " +
-                     "Klausimas: \"" + question + "\".";
-        question = string.Empty;
+        var raw = await AIService.GetAnswerAsync(question);
+        lastAnswer = (MarkupString)raw; // render as HTML
+        question = "";
     }
 }

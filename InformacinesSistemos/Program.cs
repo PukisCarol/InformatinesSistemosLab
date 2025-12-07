@@ -35,6 +35,8 @@ builder.Services.AddScoped<IGameService, PgGamesService>();
 builder.Services.AddScoped<ICartService, InMemoryCartService>(); // ← FIXES YOUR CART ERROR
 builder.Services.AddScoped<IUserService, PgUserService>(); // ← FIXES YOUR CART ERROR
 builder.Services.AddScoped<IReviewService, PgReviewService>();
+builder.Services.AddScoped<IAIService, GroqAIService>();
+builder.Services.AddHttpClient(); // needed for HTTP requests
 
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
