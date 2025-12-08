@@ -1,5 +1,7 @@
 ﻿@page "/moderation/reviews"
 @using InformacinesSistemos.Models
+@inject IReviewService ReviewService
+
 @using Microsoft.AspNetCore.Components.Authorization
 @inject InformacinesSistemos.Services.IUserService UserService
 @inject InformacinesSistemos.Services.IReviewService ReviewService

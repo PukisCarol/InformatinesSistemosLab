@@ -1,6 +1,8 @@
 ﻿@page "/feedback"
 @rendermode InteractiveServer
 @using InformacinesSistemos.Models
+@inject IReviewService ReviewService
+
 @inject InformacinesSistemos.Services.IReviewService ReviewService
 @inject InformacinesSistemos.Services.SimpleAuthenticationStateProvider AuthProvider
 

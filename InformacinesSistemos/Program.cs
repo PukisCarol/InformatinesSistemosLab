@@ -14,6 +14,8 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 builder.Services.AddScoped<IEmailService, SmtpEmailService>();
 builder.Services.AddScoped<IHistoryService, PgHistoryService>();
+builder.Services.AddScoped<IReviewService, ReviewService>();
+
 
 builder.Services.AddScoped<ProtectedLocalStorage>();
 builder.Services.AddScoped<IUserService, PgUserService>();
@@ -25,7 +27,10 @@ builder.Services.AddScoped<AuthenticationStateProvider>(sp =>
 
 builder.Services.AddAuthorizationCore();
 builder.Services.AddCascadingAuthenticationState();
-
+builder.Services.AddScoped<InformacinesSistemos.Services.IBankPaymentService,
+                           InformacinesSistemos.Services.BankPaymentService>();
+builder.Services.AddScoped<InformacinesSistemos.Services.IUserLookupService,
+                           InformacinesSistemos.Services.UserLookupService>();
 // Registracijos ir prisijungimo servisai
 builder.Services.AddScoped<IRegistrationService, PgRegistrationService>();
 builder.Services.AddScoped<ILoginService, PgLoginService>();
@@ -33,6 +38,8 @@ builder.Services.AddScoped<IGameService, PgGamesService>();
 builder.Services.AddScoped<ICartService, InMemoryCartService>(); // ← FIXES YOUR CART ERROR
 builder.Services.AddScoped<IUserService, PgUserService>(); // ← FIXES YOUR CART ERROR
 builder.Services.AddScoped<IReviewService, PgReviewService>();
+builder.Services.AddScoped<IAIService, GroqAIService>();
+builder.Services.AddHttpClient(); // needed for HTTP requests
 
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
