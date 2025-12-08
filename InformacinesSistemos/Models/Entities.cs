@@ -49,7 +49,7 @@ public class Zaidimas
     public string Kurejas { get; set; } = null!;
     public string ZaidejuSkaicius { get; set; } = null!;
     public string Aprasymas { get; set; } = null!;
-
+    public string PardavimoTipas { get; set; } = "Pardavimas";
     // FK į žanrą
     public int ZanroId { get; set; }
     public Zanras? Zanras { get; set; }
@@ -66,6 +66,38 @@ public class Zaidimas
     public ICollection<Atsiliepimas> Atsiliepimai { get; set; } = new List<Atsiliepimas>();
     public ICollection<Uzsakymas> Uzsakymai { get; set; } = new List<Uzsakymas>();
 }
+
+public class VartotojoSandoris
+{
+    public int Id { get; set; }
+
+    public int NaudotojasId { get; set; }
+    public int ZaidimoId { get; set; }
+
+    public string ZaidimoPavadinimas { get; set; } = string.Empty;
+
+    /// <summary>
+    /// 'Pardavimas' arba 'Nuoma'
+    /// </summary>
+    public string Tipas { get; set; } = string.Empty;
+
+    /// <summary>
+    /// 'Aktyvi' arba 'Atšaukta'
+    /// </summary>
+    public string Busena { get; set; } = "Aktyvi";
+
+    /// <summary>
+    /// Paskutinio mokėjimo data (arba pirkimo data)
+    /// </summary>
+    public DateTime PaskutinisMokejimas { get; set; }
+
+    /// <summary>
+    /// Patogumui – apskaičiuotas galiojimo laikas nuomai (1 mėn. nuo paskutinio mokėjimo).
+    /// </summary>
+    public DateTime? NuomaGaliojaIki =>
+        Tipas == "Nuoma" ? PaskutinisMokejimas.AddMonths(1) : null;
+}
+
 
 public class Zanras
 {

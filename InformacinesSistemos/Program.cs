@@ -13,6 +13,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 builder.Services.AddScoped<IEmailService, SmtpEmailService>();
+builder.Services.AddScoped<IHistoryService, PgHistoryService>();
 
 builder.Services.AddScoped<ProtectedLocalStorage>();
 builder.Services.AddScoped<IUserService, PgUserService>();

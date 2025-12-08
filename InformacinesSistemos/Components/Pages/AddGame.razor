@@ -49,6 +49,18 @@ else
             </label>
 
             <label>
+                Pardavimo tipas
+                <select @bind="model.PardavimoTipas">
+                    <option value="Pardavimas">Pardavimas</option>
+                    <option value="Nuoma">Nuoma (1 mėnesiui)</option>
+                </select>
+                <span class="text-muted" style="font-size: 0.85rem;">
+                    Jei pasirinkta „Nuoma“, kaina nurodoma už 1 mėnesį.
+                </span>
+            </label>
+
+
+            <label>
                 Reitingas (1–5)
                 <InputNumber TValue="double?" @bind-Value="model.Reitingas" />
                 <ValidationMessage For="@(() => model.Reitingas)" />
@@ -196,11 +208,13 @@ else
             Aprasymas = model.Aprasymas,
             AmziausCenzas = model.AmziausCenzas ?? 0,
             ZaidejuSkaicius = model.ZaidejuSkaicius,
+            PardavimoTipas = model.PardavimoTipas,
             ZanroId = 0,
             Zanras = null,
             SavininkoId = loggedInUser.NaudotojasId,
             Savininkas = loggedInUser
         };
+
 
         if (model.Tipas == "Kompiuterinis")
         {
@@ -259,6 +273,11 @@ else
         [Required(ErrorMessage = "Kaina yra privaloma.")]
         [Range(0.1, 9999, ErrorMessage = "Kaina turi būti didesnė nei 0.")]
         public double? Kaina { get; set; }
+
+        // 👇 NAUJAS LAUKAS – pardavimas ar nuoma
+        [Required(ErrorMessage = "Pardavimo tipas yra privalomas.")]
+        public string PardavimoTipas { get; set; } = "Pardavimas";
+
 
         [Required(ErrorMessage = "Reitingas yra privalomas.")]
         [Range(1, 5, ErrorMessage = "Reitingas turi būti tarp 1 ir 5.")]

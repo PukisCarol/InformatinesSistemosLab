@@ -20,6 +20,13 @@
         <option value="pc">Kompiuteriniai žaidimai</option>
         <option value="board">Stalo žaidimai</option>
     </select>
+
+    <select @onchange="OnSaleTypeChange" value="@selectedSaleType">
+        <option value="">Pardavimas ir nuoma</option>
+        <option value="Pardavimas">Tik parduodami</option>
+        <option value="Nuoma">Tik nuomojami</option>
+    </select>
+
 </div>
 
 @if (filteredGames is null)
@@ -38,7 +45,18 @@ else
             <div class="game-card">
                 <div class="game-header">
                     <span class="game-type">@GetTypeLabel(g)</span>
-                    <span class="game-price">@g.Kaina.ToString("0.00") €</span>
+                    <span class="game-price">
+                        @g.Kaina.ToString("0.00") €
+                        @if (g.PardavimoTipas == "Nuoma")
+                        {
+                            @: / mėn. (nuoma)
+                        }
+                        else
+                        {
+                            @: (pardavimas)
+                        }
+                    </span>
+
                 </div>
                 <h5>@g.Aprasymas</h5>
                 <div class="game-meta">
@@ -67,6 +85,7 @@ else
 
     private string? selectedType;
     private string searchText = string.Empty;
+    private string? selectedSaleType;
 
     protected override async Task OnInitializedAsync()
     {
@@ -77,6 +96,13 @@ else
     {
         CartService.Add(game, 1);
     }
+
+    private void OnSaleTypeChange(ChangeEventArgs e)
+    {
+        selectedSaleType = e.Value?.ToString();
+        ApplyFilters();
+    }
+
 
     protected override async Task OnParametersSetAsync()
     {
@@ -130,6 +156,19 @@ else
                 query = query.Where(g => g.Stalo != null);
             }
         }
+
+        if (!string.IsNullOrEmpty(selectedSaleType))
+        {
+            if (selectedSaleType == "Pardavimas")
+            {
+                query = query.Where(g => g.PardavimoTipas == "Pardavimas");
+            }
+            else if (selectedSaleType == "Nuoma")
+            {
+                query = query.Where(g => g.PardavimoTipas == "Nuoma");
+            }
+        }
+
 
         if (!string.IsNullOrWhiteSpace(searchText))
         {

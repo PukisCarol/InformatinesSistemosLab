@@ -1,34 +1,175 @@
 ﻿@page "/purchase-history"
+@rendermode InteractiveServer
 
-<PageTitle>Pirkimų / nuomos istorija</PageTitle>
+@using InformacinesSistemos.Models
+@using InformacinesSistemos.Services
+@using Microsoft.AspNetCore.Components.Authorization
 
-<h2>Pirkimų ir nuomos istorija</h2>
+@inject AuthenticationStateProvider AuthStateProvider
+@inject IUserService UserService
+@inject IHistoryService HistoryService
+@inject NavigationManager Nav
 
-<p>
-    Čia bus rodoma naudotojo užsakymų istorija: pirkimai ir nuomos, jų sumos, būsenos ir datos.
-</p>
+<PageTitle>Mano pirkimų ir nuomos istorija</PageTitle>
 
-<table class="history-table">
-    <thead>
-        <tr>
-            <th>Data</th>
-            <th>Žaidimas</th>
-            <th>Suma</th>
-            <th>Būsena</th>
-        </tr>
-    </thead>
-    <tbody>
-        <tr>
-            <td>2025-11-01</td>
-            <td>Catan</td>
-            <td>29.99 €</td>
-            <td>Įvykdytas</td>
-        </tr>
-        <tr>
-            <td>2025-11-05</td>
-            <td>The Witcher 3</td>
-            <td>49.99 €</td>
-            <td>Apdorojamas</td>
-        </tr>
-    </tbody>
-</table>
+<h2>Mano pirkimų ir nuomos istorija</h2>
+
+@if (!string.IsNullOrEmpty(errorMessage))
+{
+    <div class="alert alert-danger">@errorMessage</div>
+}
+
+@if (!string.IsNullOrEmpty(successMessage))
+{
+    <div class="alert alert-success">@successMessage</div>
+}
+
+@if (isLoading)
+{
+    <p>Kraunama...</p>
+}
+else if (records == null || records.Count == 0)
+{
+    <p>Dar neturite nei vieno pirkimo ar nuomos įrašo.</p>
+}
+else
+{
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Žaidimas</th>
+                <th>Tipas</th>
+                <th>Būsena</th>
+                <th>Paskutinis mokėjimas</th>
+                <th>Galioja iki</th>
+                <th>Veiksmai</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var r in records)
+            {
+                var galiojaIki = GetNuomosGaliojimoData(r);
+
+                <tr>
+                    <td>@r.ZaidimoPavadinimas</td>
+                    <td>@(r.Tipas == "Nuoma" ? "Nuoma (1 mėn.)" : "Pardavimas")</td>
+                    <td>@r.Busena</td>
+                    <td>@r.PaskutinisMokejimas.ToString("yyyy-MM-dd")</td>
+                    <td>
+                        @if (r.Tipas == "Nuoma" && galiojaIki.HasValue)
+                        {
+                            @galiojaIki.Value.ToString("yyyy-MM-dd")
+                        }
+                    </td>
+                    <td>
+                        <button class="btn btn-sm btn-secondary"
+                                @onclick="@(() => LeaveReview(r))">
+                            Pateikti atsiliepimą
+                        </button>
+
+                        @if (r.Tipas == "Nuoma" && r.Busena == "Aktyvi")
+                        {
+                            <button class="btn btn-sm btn-danger"
+                                    style="margin-left: 6px"
+                                    @onclick="@(() => CancelRentalAsync(r))"
+                                    disabled="@isCancelling">
+                                @(isCancelling ? "Atšaukiama..." : "Atšaukti nuomą")
+                            </button>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<VartotojoSandoris> records = new();
+    private bool isLoading = true;
+    private bool isCancelling = false;
+    private string? errorMessage;
+    private string? successMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (user?.Identity == null || !user.Identity.IsAuthenticated)
+        {
+            errorMessage = "Norėdami matyti pirkimų ir nuomos istoriją, turite prisijungti.";
+            isLoading = false;
+            return;
+        }
+
+        var email = user.Identity.Name;
+        if (string.IsNullOrWhiteSpace(email))
+        {
+            errorMessage = "Nepavyko nustatyti naudotojo el. pašto.";
+            isLoading = false;
+            return;
+        }
+
+        // ištraukiam naudotoją iš DB
+        var entity = await UserService.GetByEmailAsync(email);
+        if (entity == null)
+        {
+            errorMessage = "Naudotojas nerastas duomenų bazėje.";
+            isLoading = false;
+            return;
+        }
+
+        var userId = entity.NaudotojasId;
+        records = await HistoryService.GetForUserAsync(userId);
+
+        isLoading = false;
+    }
+
+    private DateTime? GetNuomosGaliojimoData(VartotojoSandoris r)
+    {
+        if (r.Tipas != "Nuoma")
+            return null;
+
+        return r.PaskutinisMokejimas.AddMonths(1);
+    }
+
+    private void LeaveReview(VartotojoSandoris record)
+    {
+        // Pritaikyk maršrutą pagal savo FeedbackReview.razor @page
+        // Pvz. jei ten @page "/feedback/{zaidimoId:int}":
+        Nav.NavigateTo($"/feedback/{record.ZaidimoId}");
+    }
+
+    private async Task CancelRentalAsync(VartotojoSandoris record)
+    {
+        errorMessage = null;
+        successMessage = null;
+        isCancelling = true;
+
+        try
+        {
+            await HistoryService.CancelRentalAsync(record.Id);
+            record.Busena = "Atšaukta";
+
+            var iki = GetNuomosGaliojimoData(record);
+            if (iki.HasValue)
+            {
+                successMessage =
+                    $"Nuoma atšaukta. Žaidimas dar bus prieinamas iki {iki.Value:yyyy-MM-dd}.";
+            }
+            else
+            {
+                successMessage = "Nuoma atšaukta.";
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine(ex);
+            errorMessage = "Nepavyko atšaukti nuomos.";
+        }
+        finally
+        {
+            isCancelling = false;
+        }
+    }
+}

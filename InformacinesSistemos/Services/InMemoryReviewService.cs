@@ -1,55 +1,44 @@
-﻿
-using InformacinesSistemos.Components.Pages;
+﻿using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 using InformacinesSistemos.Models;
 
 namespace InformacinesSistemos.Services
 {
     public class InMemoryReviewService : IReviewService
     {
-        private readonly List<Atsiliepimas> _reviews;
+        private readonly List<Atsiliepimas> _reviews = new();
 
         public InMemoryReviewService()
         {
-            _reviews = new List<Atsiliepimas>
-        {
-            new Atsiliepimas
-            {
-                AtsiliepimoId = 1,
-                Data = DateTime.Today.AddDays(-30),
-                AtsiliepimoTekstas = "Patiko labai",
-                Ivertinimas = 5
-            },
-            new Atsiliepimas
-            {
-                AtsiliepimoId = 2,
-                Data = DateTime.Today.AddDays(-10),
-                AtsiliepimoTekstas = "Nepatiko",
-                Ivertinimas = 2
-            }
-        };
-        }
-        public Task AcceptReviewAsync(int reviewId)
-        {
-            var review = _reviews.FirstOrDefault(u => u.AtsiliepimoId == reviewId);
-           
-
-            return Task.CompletedTask;
-        }
-
-        public Task DeleteReviewAsync(int reviewId)
-        {
-            var review = _reviews.FirstOrDefault(u => u.AtsiliepimoId == reviewId);
-            
-
-            return Task.CompletedTask;
+            // Jei labai norėsi seed'inti testinių atsiliepimų,
+            // galėsim vėliau pritaikyti pagal tikrus Atsiliepimas laukus.
+            // Dabar paliekam tuščią sąrašą, kad nepyktų dėl neegzistuojančių property.
         }
 
         public Task<List<Atsiliepimas>> GetAllAsync()
         {
-            return Task.FromResult(_reviews
-            .OrderBy(u => u.Ivertinimas)
-            .ThenBy(u => u.AtsiliepimoTekstas)
-            .ToList());
+            return Task.FromResult(_reviews.ToList());
+        }
+
+        public Task AddReviewAsync(Atsiliepimas review)
+        {
+            _reviews.Add(review);
+            return Task.CompletedTask;
+        }
+
+        public Task AcceptReviewAsync(int id)
+        {
+            // In-memory režime nieko nedarom – tik kad tenkintume interface'ą
+            return Task.CompletedTask;
+        }
+
+        public Task DeleteReviewAsync(int id)
+        {
+            // Paprastai išmeskim iš sąrašo, jei yra
+            _reviews.RemoveAll(r => r.GetHashCode() == id);
+            // (čia nieko kritiško, nes vis tiek realiai nenaudosi šito serviso)
+            return Task.CompletedTask;
         }
     }
 }

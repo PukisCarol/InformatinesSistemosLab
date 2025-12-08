@@ -98,10 +98,11 @@ namespace InformacinesSistemos.Services
             // Insert main game
             var sqlGame = @"
                 INSERT INTO zaidimas
-                (pradžia, kaina, reitingas, amziauscenzas, kurejas, zaidejuskaicius, aprasymas, fk_naudotojasasmenskodas)
-                VALUES (@pr, @k, @r, @a, @kr, @zs, @ap, @sid)
+                (pradžia, kaina, reitingas, amziauscenzas, kurejas, zaidejuskaicius, aprasymas, fk_naudotojasasmenskodas, pardavimotipas)
+                VALUES (@pr, @k, @r, @a, @kr, @zs, @ap, @sid, @pt)
                 RETURNING zaidimoid;
             ";
+
 
             await using (var cmd = new NpgsqlCommand(sqlGame, conn))
             {
@@ -113,6 +114,7 @@ namespace InformacinesSistemos.Services
                 cmd.Parameters.AddWithValue("@zs", game.ZaidejuSkaicius);
                 cmd.Parameters.AddWithValue("@ap", game.Aprasymas);
                 cmd.Parameters.AddWithValue("@sid", game.SavininkoId);
+                cmd.Parameters.AddWithValue("@pt", game.PardavimoTipas);
 
                 game.ZaidimoId = (int)(await cmd.ExecuteScalarAsync() ?? 0);
             }
@@ -172,7 +174,9 @@ namespace InformacinesSistemos.Services
                 Kurejas = r.GetString(r.GetOrdinal("kurejas")),
                 ZaidejuSkaicius = r.GetString(r.GetOrdinal("zaidejuskaicius")),
                 Aprasymas = r.GetString(r.GetOrdinal("aprasymas")),
+                PardavimoTipas = r.GetString(r.GetOrdinal("pardavimotipas")),
                 SavininkoId = r.GetInt32(r.GetOrdinal("fk_naudotojasasmenskodas"))
+            
             };
 
             // NAUDOTOJAS
