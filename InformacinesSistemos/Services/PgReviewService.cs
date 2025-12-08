@@ -1,4 +1,7 @@
-﻿using InformacinesSistemos.Models;
+﻿using System.Collections.Generic;
+using System.Threading.Tasks;
+using InformacinesSistemos.Models;
+using Microsoft.Extensions.Configuration;
 using Npgsql;
 
 namespace InformacinesSistemos.Services
@@ -10,81 +13,100 @@ namespace InformacinesSistemos.Services
         public PgReviewService(IConfiguration cfg)
         {
             _connString = cfg.GetConnectionString("DefaultConnection")
-                ?? throw new InvalidOperationException("Nerasta ConnectionStrings:DefaultConnection konfigūracija.");
+                          ?? throw new InvalidOperationException("Nerasta DB jungtis 'DefaultConnection'.");
         }
 
+        // --- Visų atsiliepimų sąrašas (pvz. admin/moderatoriams) ---
         public async Task<List<Atsiliepimas>> GetAllAsync()
         {
-            var reviews = new List<Atsiliepimas>();
+            var list = new List<Atsiliepimas>();
 
             await using var conn = new NpgsqlConnection(_connString);
             await conn.OpenAsync();
 
-            var sql = @"
-                SELECT 
-                    AtsiliepimoId, Data, AtsiliepimoTeksats, Ivertinimas,
-                    fk_ZaidimasZaidimoId, fk_NaudotojasAsmensKodas
-                FROM Atsiliepimas
-                ORDER BY Ivertinimas, AtsiliepimoTeksats;
-            ";
+            const string sql = @"
+                SELECT atsiliepimoid, data, atsiliepimotekstas, ivertinimas,
+                       fk_zaidimaszaidimoid, fk_naudotojasasmenskodas
+                FROM atsiliepimas";
 
             await using var cmd = new NpgsqlCommand(sql, conn);
             await using var reader = await cmd.ExecuteReaderAsync();
 
             while (await reader.ReadAsync())
             {
-                reviews.Add(new Atsiliepimas
+                list.Add(new Atsiliepimas
                 {
-                    AtsiliepimoId = reader.GetInt32(reader.GetOrdinal("AtsiliepimoId")),
-                    Data = reader.GetDateTime(reader.GetOrdinal("Data")),
-                    AtsiliepimoTekstas = reader.GetString(reader.GetOrdinal("AtsiliepimoTeksats")),
-                    Ivertinimas = reader.GetInt32(reader.GetOrdinal("Ivertinimas")),
-                    ZaidimoId = reader.GetInt32(reader.GetOrdinal("fk_ZaidimasZaidimoId")),
-                    NaudotojasId = reader.GetInt32(reader.GetOrdinal("fk_NaudotojasAsmensKodas"))
+                    AtsiliepimoId = reader.GetInt32(0),
+                    Data = reader.GetDateTime(1),
+                    AtsiliepimoTekstas = reader.GetString(2),
+                    Ivertinimas = reader.GetInt32(3),
+                    ZaidimoId = reader.GetInt32(4),
+                    NaudotojasId = reader.GetInt32(5)
                 });
             }
 
-            return reviews;
+            return list;
         }
 
-        public async Task AcceptReviewAsync(int reviewId)
+        // --- Atsiliepimai konkrečiam žaidimui ---
+        public async Task<List<Atsiliepimas>> GetForGameAsync(int zaidimoId)
         {
-            // Table has no "accepted" column; implement as needed.
-            await Task.CompletedTask;
-        }
+            var list = new List<Atsiliepimas>();
 
-        public async Task DeleteReviewAsync(int reviewId)
-        {
             await using var conn = new NpgsqlConnection(_connString);
             await conn.OpenAsync();
 
-            var sql = "DELETE FROM Atsiliepimas WHERE AtsiliepimoId = @id;";
+            const string sql = @"
+                SELECT atsiliepimoid, data, atsiliepimotekstas, ivertinimas,
+                       fk_zaidimaszaidimoid, fk_naudotojasasmenskodas
+                FROM atsiliepimas
+                WHERE fk_zaidimaszaidimoid = @id";
 
             await using var cmd = new NpgsqlCommand(sql, conn);
-            cmd.Parameters.AddWithValue("@id", reviewId);
+            cmd.Parameters.AddWithValue("id", zaidimoId);
 
-            await cmd.ExecuteNonQueryAsync();
+            await using var reader = await cmd.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                list.Add(new Atsiliepimas
+                {
+                    AtsiliepimoId = reader.GetInt32(0),
+                    Data = reader.GetDateTime(1),
+                    AtsiliepimoTekstas = reader.GetString(2),
+                    Ivertinimas = reader.GetInt32(3),
+                    ZaidimoId = reader.GetInt32(4),
+                    NaudotojasId = reader.GetInt32(5)
+                });
+            }
+
+            return list;
         }
+
+        // --- Pateikti naują atsiliepimą ---
         public async Task AddReviewAsync(Atsiliepimas review)
         {
             await using var conn = new NpgsqlConnection(_connString);
             await conn.OpenAsync();
 
-            var sql = @"
+            const string sql = @"
                 INSERT INTO atsiliepimas
-                (atsiliepimoid, data, atsiliepimotekstsats, ivertinimas, fk_zaidimaszaidimoid, fk_naudotojasasmenskodas)
-                VALUES (@id, @d, @tekstas, @iv, @gid, @uid);
-            ";
+                    (data, atsiliepimotekstas, ivertinimas,
+                     fk_zaidimaszaidimoid, fk_naudotojasasmenskodas)
+                VALUES
+                    (@data, @tekstas, @ivertinimas, @zaidimoId, @naudotojasAk);";
 
             await using var cmd = new NpgsqlCommand(sql, conn);
-            cmd.Parameters.AddWithValue("@id", review.AtsiliepimoId);
-            cmd.Parameters.AddWithValue("@d", review.Data);
-            cmd.Parameters.AddWithValue("@tekstas", review.AtsiliepimoTekstas);
-            cmd.Parameters.AddWithValue("@iv", review.Ivertinimas);
-            cmd.Parameters.AddWithValue("@gid", review.ZaidimoId);
-            cmd.Parameters.AddWithValue("@uid", review.NaudotojasId);
+            cmd.Parameters.AddWithValue("data", review.Data);
+            cmd.Parameters.AddWithValue("tekstas", review.AtsiliepimoTekstas);
+            cmd.Parameters.AddWithValue("ivertinimas", review.Ivertinimas);
+            cmd.Parameters.AddWithValue("zaidimoId", review.ZaidimoId);
+            cmd.Parameters.AddWithValue("naudotojasAk", review.NaudotojasId); // čia = AsmensKodas
 
             await cmd.ExecuteNonQueryAsync();
         }
+
+        // jei kol kas nereikia – galima palikti tuščius stub'us
+        public Task AcceptReviewAsync(int id) => Task.CompletedTask;
+        public Task DeleteReviewAsync(int id) => Task.CompletedTask;
     }
 }

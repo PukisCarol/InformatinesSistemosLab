@@ -3,6 +3,8 @@
 @inject InformacinesSistemos.Services.IGameService GameService
 @inject InformacinesSistemos.Services.ICartService CartService
 @inject NavigationManager Nav
+@inject InformacinesSistemos.Services.IReviewService ReviewService
+
 
 <PageTitle>Žaidimo informacija</PageTitle>
 
@@ -53,6 +55,26 @@ else
                 <p><strong>Trukmė:</strong> @game.Stalo.Trukme min</p>
             </div>
         }
+        <h3>Atsiliepimai</h3>
+
+        @if (reviews == null || reviews.Count == 0)
+        {
+            <p>Kol kas atsiliepimų nėra.</p>
+        }
+        else
+        {
+            <ul class="review-list">
+                @foreach (var r in reviews)
+                {
+                    <li>
+                        <strong>@r.Ivertinimas/5</strong> – @r.AtsiliepimoTekstas
+                        <br />
+                        <small>@r.Data.ToShortDateString()</small>
+                    </li>
+                }
+            </ul>
+        }
+
 
         <div class="gd-actions">
             <button class="outline-btn" @onclick="@GoBack">Grįžti</button>
@@ -69,6 +91,25 @@ else
     private Zaidimas? game;
     private bool isLoading = true;
 
+
+    private List<Atsiliepimas>? reviews;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // čia pas tave jau tikrai yra logika, kuri užkrauna konkretų žaidimą
+        // pvz. game = await GameService.GetByIdAsync(Id);
+
+        await LoadReviews();
+    }
+
+    private async Task LoadReviews()
+    {
+        if (game == null) return;
+
+        // ČIA panaudok savo servisą, kuris grąžina atsiliepimus pagal žaidimo Id.
+        // Jei tokio metodo dar nėra – susikurk IReviewService.GetForGameAsync(int gameId)
+        reviews = await ReviewService.GetForGameAsync(game.ZaidimoId);
+    }
     protected override async Task OnParametersSetAsync()
     {
         isLoading = true;

@@ -5,6 +5,8 @@
 @using InformacinesSistemos.Models
 @using Microsoft.AspNetCore.Components.Forms
 @using Microsoft.AspNetCore.Components.Authorization
+@inject InformacinesSistemos.Services.IHistoryService HistoryService
+@inject InformacinesSistemos.Services.IUserService UserService
 
 @inject InformacinesSistemos.Services.ICartService CartService
 @inject InformacinesSistemos.Services.IBankPaymentService BankPaymentService
@@ -169,6 +171,7 @@ else
 
     private bool isAuthenticated;
     private string? currentUserEmail;
+    private int? currentUserId;
 
     private OrderForm order = new();
     private CardPaymentForm card = new();
@@ -189,13 +192,32 @@ else
     {
         var authState = await AuthStateProvider.GetAuthenticationStateAsync();
         var user = authState.User;
+
         isAuthenticated = user.Identity?.IsAuthenticated ?? false;
         currentUserEmail = user.Identity?.Name;
+
         if (!string.IsNullOrWhiteSpace(currentUserEmail))
+        {
             order.Email = currentUserEmail;
 
+            // Pasiimam naudotoją iš DB, kad turėtume jo ID istorijai
+            var entity = await UserService.GetByEmailAsync(currentUserEmail);
+            if (entity != null)
+            {
+                currentUserId = entity.NaudotojasId;
+
+                if (string.IsNullOrWhiteSpace(order.FullName))
+                    order.FullName = $"{entity.Vardas} {entity.Pavarde}";
+
+                if (string.IsNullOrWhiteSpace(order.Phone))
+                    order.Phone = entity.TelefonoNumeris ?? string.Empty;
+            }
+        }
+
+        // default mokėjimo būdas
         order.PaymentMethod = PaymentKortele;
     }
+
 
     private void GoBack() => Nav.NavigateTo("/cart");
     private void GoToGames() => Nav.NavigateTo("/games");
@@ -203,11 +225,42 @@ else
 
     private async Task ConfirmOrder()
     {
+        if (!isAuthenticated || currentUserId == null)
+        {
+            Nav.NavigateTo("/login");
+            return;
+        }
+
+        var userId = currentUserId.Value;
+        var today = DateTime.Today;
+
+        foreach (var item in CartService.Items)
+        {
+            var game = item.Zaidimas;
+            if (game == null) continue;
+
+            var tipas = string.IsNullOrWhiteSpace(game.PardavimoTipas)
+                ? "Pardavimas"
+                : game.PardavimoTipas;
+
+            for (int i = 0; i < item.Quantity; i++)
+            {
+                await HistoryService.AddEntryAsync(
+                    naudotojasId: userId,
+                    zaidimoId: game.ZaidimoId,
+                    tipas: tipas,
+                    paskutinisMokejimas: today
+                );
+            }
+        }
+
         orderNumber = $"GS-{DateTime.Now:yyyyMMddHHmmss}";
         isCompleted = true;
+
         CartService.Clear();
         await InvokeAsync(StateHasChanged);
     }
+
 
     private async Task PayWithCard()
     {
@@ -287,11 +340,12 @@ else
                 var insertedId = await insertTask;
             }
 
-            orderNumber = $"GS-{DateTime.Now:yyyyMMddHHmmss}";
-            isCompleted = true;
             paymentMessage = "Sėkmingai įvykdytas mokėjimas.";
             paymentStatusClass = "ok";
-            CartService.Clear();
+
+            // ČIA – realus užsakymo patvirtinimas + įrašymas į istoriją
+            await ConfirmOrder();
+
         }
         catch (Exception ex)
         {

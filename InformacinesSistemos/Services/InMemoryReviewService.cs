@@ -8,11 +8,10 @@ namespace InformacinesSistemos.Services
 {
     public class InMemoryReviewService : IReviewService
     {
-        private readonly List<Atsiliepimas> _reviews;
+        private readonly List<Atsiliepimas> _reviews = new();
 
         public InMemoryReviewService()
         {
-            // Paprasti seed'iniai atsiliepimai testavimui
             _reviews = new List<Atsiliepimas>
             {
                 new Atsiliepimas
@@ -20,61 +19,53 @@ namespace InformacinesSistemos.Services
                     AtsiliepimoId = 1,
                     Data = DateTime.Today.AddDays(-30),
                     AtsiliepimoTekstas = "Patiko labai",
-                    Ivertinimas = 5
+                    Ivertinimas = 5,
+                    NaudotojasId = 1,
+                    ZaidimoId = 2001
                 },
                 new Atsiliepimas
                 {
                     AtsiliepimoId = 2,
                     Data = DateTime.Today.AddDays(-10),
-                    AtsiliepimoTekstas = "Nepatiko",
-                    Ivertinimas = 2
+                    AtsiliepimoTekstas = "Galėtų būti geriau",
+                    Ivertinimas = 3,
+                    NaudotojasId = 2,
+                    ZaidimoId = 2001
                 }
             };
         }
 
         public Task<List<Atsiliepimas>> GetAllAsync()
-        {
-            return Task.FromResult(_reviews.ToList());
-        }
+            => Task.FromResult(_reviews.ToList());
+
+        public Task<List<Atsiliepimas>> GetForGameAsync(int gameId)
+            => Task.FromResult(_reviews.Where(r => r.ZaidimoId == gameId).ToList());
 
         public Task AddReviewAsync(Atsiliepimas review)
         {
             if (review == null) throw new ArgumentNullException(nameof(review));
 
-            // jei ID nenustatytas – suteikiam naują
             if (review.AtsiliepimoId == 0)
-            {
-                var nextId = _reviews.Count == 0
+                review.AtsiliepimoId = _reviews.Count == 0
                     ? 1
                     : _reviews.Max(r => r.AtsiliepimoId) + 1;
 
-                review.AtsiliepimoId = nextId;
-            }
+            if (review.Data == default)
+                review.Data = DateTime.Today;
 
             _reviews.Add(review);
             return Task.CompletedTask;
         }
 
-        public Task AcceptReviewAsync(int reviewId)
+        public Task AcceptReviewAsync(int id)
         {
-            var review = _reviews.FirstOrDefault(r => r.AtsiliepimoId == reviewId);
-            if (review != null)
-            {
-                // Jei tavo Atsiliepimas turi kokį lauką "Patvirtintas" / "Busena" – gali čia nustatyti
-                // review.Patvirtintas = true;
-            }
-
+            // in-memory – nieko nedarom
             return Task.CompletedTask;
         }
 
-        public Task AddReviewAsync(Atsiliepimas review)
+        public Task DeleteReviewAsync(int id)
         {
-            throw new NotImplementedException();
-        }
-
-        public Task DeleteReviewAsync(int reviewId)
-        {
-            _reviews.RemoveAll(r => r.AtsiliepimoId == reviewId);
+            _reviews.RemoveAll(r => r.AtsiliepimoId == id);
             return Task.CompletedTask;
         }
     }

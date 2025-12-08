@@ -1,26 +1,29 @@
-﻿@page "/feedback"
+﻿@page "/feedback/{zaidimoId:int}"
 @rendermode InteractiveServer
-@using InformacinesSistemos.Models
-@inject IReviewService ReviewService
 
-@inject InformacinesSistemos.Services.IReviewService ReviewService
-@inject InformacinesSistemos.Services.SimpleAuthenticationStateProvider AuthProvider
+@using InformacinesSistemos.Models
+@using InformacinesSistemos.Services
+@using Microsoft.AspNetCore.Components
+@using Microsoft.AspNetCore.Components.Authorization
+
+@inject IReviewService ReviewService
+@inject IGameService GameService
+@inject IUserService UserService
+@inject AuthenticationStateProvider AuthProvider
 
 <PageTitle>Atsiliepimai</PageTitle>
 
 <h2>Pateikti atsiliepimą apie žaidimą</h2>
 
 <div class="feedback-form">
-    <input placeholder="Žaidimo pavadinimas"
-           @bind="zaidimoPavadinimas" />
+    <label>Žaidimo pavadinimas</label>
+    <InputText @bind-Value="zaidimoPavadinimas" readonly />
 
-    <input type="number"
-           min="1" max="5"
-           @bind="ivertinimas"
-           placeholder="Įvertinimas (1-5)" />
+    <label>Įvertinimas (1–5)</label>
+    <InputNumber @bind-Value="ivertinimas" Min="1" Max="5" />
 
-    <textarea placeholder="Jūsų atsiliepimas..."
-              @bind="tekstas"></textarea>
+    <label>Jūsų atsiliepimas</label>
+    <InputTextArea @bind-Value="tekstas" rows="5" />
 
     <button class="primary-btn" @onclick="Submit" disabled="@IsSubmitDisabled">
         Pateikti atsiliepimą
@@ -34,8 +37,7 @@
 
 @if (submitted.Any())
 {
-    <h3>Pateikti atsiliepimai (šios sesijos metu)</h3>
-
+    <h3>Jūsų pateikti atsiliepimai (ši sesija)</h3>
     <ul class="feedback-list">
         @foreach (var f in submitted)
         {
@@ -50,6 +52,9 @@
 }
 
 @code {
+    [Parameter]
+    public int zaidimoId { get; set; }
+
     private string zaidimoPavadinimas = string.Empty;
     private int ivertinimas = 5;
     private string tekstas = string.Empty;
@@ -58,28 +63,48 @@
     private readonly List<Atsiliepimas> submitted = new();
 
     private bool IsSubmitDisabled =>
-        string.IsNullOrWhiteSpace(zaidimoPavadinimas) ||
         string.IsNullOrWhiteSpace(tekstas) ||
         ivertinimas < 1 || ivertinimas > 5;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Užkraunam žaidimo pavadinimą pagal gameId
+        var game = await GameService.GetByIdAsync(zaidimoId);
+        zaidimoPavadinimas = game?.Aprasymas ?? "Nežinomas žaidimas";
+    }
 
     private async Task Submit()
     {
         var authState = await AuthProvider.GetAuthenticationStateAsync();
         var user = authState.User;
 
-        if (!user.Identity?.IsAuthenticated ?? true)
+        if (user?.Identity == null || !user.Identity.IsAuthenticated)
         {
             successMessage = "Norint pateikti atsiliepimą, turite prisijungti.";
             return;
         }
 
+        var email = user.Identity.Name;
+        if (string.IsNullOrWhiteSpace(email))
+        {
+            successMessage = "Nepavyko nustatyti naudotojo el. pašto.";
+            return;
+        }
+
+        var entity = await UserService.GetByEmailAsync(email);
+        if (entity == null)
+        {
+            successMessage = "Naudotojas nerastas duomenų bazėje.";
+            return;
+        }
+
         var newReview = new Atsiliepimas
-        {// NEVEIKIA CIA DABA
-           // Data = DateTime.Now,
-           // AtsiliepimoTekstas = tekstas,
-           // Ivertinimas = ivertinimas,
-           // ZaidimoId = /* resolve game ID from zaidimoPavadinimas */
-           // NaudotojasId = int.Parse(user.Identity.Name!) // or your logic for user ID
+        {
+            Data = DateTime.Today,
+            AtsiliepimoTekstas = tekstas,
+            Ivertinimas = ivertinimas,
+            ZaidimoId = zaidimoId,
+            NaudotojasId = entity.NaudotojasId   // = AsmensKodas
         };
 
         await ReviewService.AddReviewAsync(newReview);
@@ -87,8 +112,8 @@
         submitted.Add(newReview);
         successMessage = "Atsiliepimas sėkmingai išsaugotas.";
 
+        // išvalom tik tekstą ir reitingą
         tekstas = string.Empty;
-        zaidimoPavadinimas = string.Empty;
         ivertinimas = 5;
     }
 }

@@ -100,7 +100,7 @@ namespace InformacinesSistemos.Services
                 }
 
                 // 0.1) Patikriname, ar toks naudotojas egzistuoja
-                const string sqlCheckUser = @"SELECT 1 FROM ""Naudotojas"" WHERE ""AsmensKodas"" = @ak LIMIT 1";
+                const string sqlCheckUser = @"SELECT 1 FROM ""naudotojas"" WHERE ""asmenskodas"" = @ak LIMIT 1";
                 await using (var checkUserCmd = new NpgsqlCommand(sqlCheckUser, conn, tx))
                 {
                     checkUserCmd.Parameters.AddWithValue("@ak", s.FkNaudotojasAsmensKodas.Value);

@@ -6,16 +6,19 @@ namespace InformacinesSistemos.Services
 {
     public interface IReviewService
     {
-        // Grąžina visus atsiliepimus
+        /// <summary>Visų atsiliepimų sąrašas (demo / adminams ir pan.).</summary>
         Task<List<Atsiliepimas>> GetAllAsync();
 
-        // Prideda naują atsiliepimą
+        /// <summary>Konkretaus žaidimo atsiliepimai.</summary>
+        Task<List<Atsiliepimas>> GetForGameAsync(int gameId);
+
+        /// <summary>Pridėti naują atsiliepimą.</summary>
         Task AddReviewAsync(Atsiliepimas review);
 
-        // Patvirtina / priima atsiliepimą (moderavimui)
-        Task AcceptReviewAsync(int reviewId);
+        /// <summary>Patvirtinti atsiliepimą (jei reikia moderavimo).</summary>
+        Task AcceptReviewAsync(int id);
 
-        // Ištrina atsiliepimą
-        Task DeleteReviewAsync(int reviewId);
+        /// <summary>Ištrinti atsiliepimą.</summary>
+        Task DeleteReviewAsync(int id);
     }
 }
