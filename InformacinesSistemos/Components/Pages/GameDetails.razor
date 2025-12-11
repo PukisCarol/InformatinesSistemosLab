@@ -69,7 +69,10 @@ else
                     <li>
                         <strong>@r.Ivertinimas/5</strong> – @r.AtsiliepimoTekstas
                         <br />
-                        <small>@r.Data.ToShortDateString()</small>
+                        <small>
+                            @r.Data.ToShortDateString()
+                            · Parašė: @r.Vardas
+                        </small>
                     </li>
                 }
             </ul>
@@ -94,26 +97,20 @@ else
 
     private List<Atsiliepimas>? reviews;
 
-    protected override async Task OnInitializedAsync()
-    {
-        // čia pas tave jau tikrai yra logika, kuri užkrauna konkretų žaidimą
-        // pvz. game = await GameService.GetByIdAsync(Id);
+    public string? Vardas { get; set; }
+    public string? Pavarde { get; set; }
 
-        await LoadReviews();
-    }
-
-    private async Task LoadReviews()
-    {
-        if (game == null) return;
-
-        // ČIA panaudok savo servisą, kuris grąžina atsiliepimus pagal žaidimo Id.
-        // Jei tokio metodo dar nėra – susikurk IReviewService.GetForGameAsync(int gameId)
-        reviews = await ReviewService.GetForGameAsync(game.ZaidimoId);
-    }
     protected override async Task OnParametersSetAsync()
     {
         isLoading = true;
-        game = await GameService.GetByIdAsync(Id);
+
+        game = await GameService.GetByIdAsync(Id); // Load game first
+
+        if (game != null)
+        {
+            reviews = await ReviewService.GetForGameAsync(game.ZaidimoId); // THEN load reviews
+        }
+
         isLoading = false;
     }
 

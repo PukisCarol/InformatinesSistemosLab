@@ -57,10 +57,17 @@ namespace InformacinesSistemos.Services
             await conn.OpenAsync();
 
             const string sql = @"
-                SELECT atsiliepimoid, data, atsiliepimotekstas, ivertinimas,
-                       fk_zaidimaszaidimoid, fk_naudotojasasmenskodas
-                FROM atsiliepimas
-                WHERE fk_zaidimaszaidimoid = @id";
+                SELECT a.atsiliepimoid,
+       a.data,
+       a.atsiliepimotekstas,
+       a.ivertinimas,
+       a.fk_zaidimaszaidimoid,
+       a.fk_naudotojasasmenskodas,
+       n.vardas,     -- add this
+       n.pavarde     -- add this
+FROM atsiliepimas a
+JOIN naudotojas n ON n.asmenskodas = a.fk_naudotojasasmenskodas
+WHERE a.fk_zaidimaszaidimoid = @id;";
 
             await using var cmd = new NpgsqlCommand(sql, conn);
             cmd.Parameters.AddWithValue("id", zaidimoId);
@@ -75,7 +82,9 @@ namespace InformacinesSistemos.Services
                     AtsiliepimoTekstas = reader.GetString(2),
                     Ivertinimas = reader.GetInt32(3),
                     ZaidimoId = reader.GetInt32(4),
-                    NaudotojasId = reader.GetInt32(5)
+                    NaudotojasId = reader.GetInt32(5),
+                    Vardas = reader.GetString(6),
+                    Pavarde = reader.GetString(7)
                 });
             }
 
@@ -107,6 +116,17 @@ namespace InformacinesSistemos.Services
 
         // jei kol kas nereikia – galima palikti tuščius stub'us
         public Task AcceptReviewAsync(int id) => Task.CompletedTask;
-        public Task DeleteReviewAsync(int id) => Task.CompletedTask;
+        public async Task DeleteReviewAsync(int id)
+        {
+            await using var conn = new NpgsqlConnection(_connString);
+            await conn.OpenAsync();
+
+            const string sql = @"DELETE FROM atsiliepimas WHERE atsiliepimoid = @id";
+
+            await using var cmd = new NpgsqlCommand(sql, conn);
+            cmd.Parameters.AddWithValue("id", id);
+
+            await cmd.ExecuteNonQueryAsync();
+        }
     }
 }

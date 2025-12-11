@@ -268,7 +268,7 @@ else if (currentUser is not null)
             return;
         }
 
-        // 🔐 SENĄ SLAPTAŽODĮ TIKRINAM PRIEŠ HASH'Ą SAUGOMĄ DB
+        // SENĄ SLAPTAŽODĮ TIKRINAM PRIEŠ HASH'Ą SAUGOMĄ DB
         if (!VerifyPassword(oldPassword, currentUser.Slaptazodis))
         {
             errorMessage = "Senas slaptažodis neteisingas.";
@@ -278,7 +278,7 @@ else if (currentUser is not null)
         isChangingPassword = true;
         try
         {
-            // 🔐 NAUJĄ SLAPTAŽODĮ HASH'UOJAM TAIP PAT KAIP REGISTRACIJOJE
+            // NAUJĄ SLAPTAŽODĮ HASH'UOJAM TAIP PAT KAIP REGISTRACIJOJE
             var hashed = HashPassword(newPassword);
 
             await UserService.UpdatePasswordAsync(currentUser.NaudotojasId, hashed);

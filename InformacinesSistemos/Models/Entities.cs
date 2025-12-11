@@ -228,6 +228,8 @@ public class Atsiliepimas
 
     public int ZaidimoId { get; set; }
     public Zaidimas? Zaidimas { get; set; }
+    public string Vardas { get; set; }
+    public string Pavarde { get; set; }
 }
 
 public class Nusiskundimas
