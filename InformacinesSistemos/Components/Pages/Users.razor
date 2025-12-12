@@ -5,12 +5,22 @@
 @using Microsoft.AspNetCore.Components.Authorization
 @inject InformacinesSistemos.Services.IUserService UserService
 @inject NavigationManager Nav
+@inject IJSRuntime JS
 
 <PageTitle>Naudotojų peržiūra</PageTitle>
 
 <AuthorizeView Roles="Moderator,Admin">
     <Authorized>
+
         <h2>Naudotojų peržiūra ir valdymas</h2>
+
+        @* Notification Area *@
+        @if (showNotification)
+        {
+            <div class="alert alert-@notificationType" role="alert">
+                @notificationMessage
+            </div>
+        }
 
         @if (users is null)
         {
@@ -46,14 +56,14 @@
                                 @if (u.PaskirosBusena == "Aktyvi")
                                 {
                                     <button class="outline-btn small"
-                                            @onclick='() => ChangeStatus(u.NaudotojasId, "Blokuota")'>
+                                            @onclick='() => ConfirmStatusChange(u.NaudotojasId, "Blokuota")'>
                                         Blokuoti
                                     </button>
                                 }
                                 else
                                 {
                                     <button class="outline-btn small"
-                                            @onclick='() => ChangeStatus(u.NaudotojasId, "Aktyvi")'>
+                                            @onclick='() => ConfirmStatusChange(u.NaudotojasId, "Aktyvi")'>
                                         Atblokuoti
                                     </button>
                                 }
@@ -80,9 +90,58 @@
 @code {
     private List<Naudotojas>? users;
 
+    // Notification fields
+    private string? notificationMessage;
+    private string notificationType = "success"; // success, warning, danger
+    private bool showNotification = false;
+
     protected override async Task OnInitializedAsync()
     {
         users = await UserService.GetAllAsync();
+    }
+
+    // Show notification for 3 seconds
+    private void ShowNotification(string message, string type = "success")
+    {
+        notificationMessage = message;
+        notificationType = type;
+        showNotification = true;
+
+        _ = Task.Run(async () =>
+        {
+            await Task.Delay(3000);
+            showNotification = false;
+            await InvokeAsync(StateHasChanged);
+        });
+    }
+
+    // Confirmation wrapper
+    private async Task ConfirmStatusChange(int naudotojasId, string status)
+    {
+        string action = status == "Blokuota" ? "blokuoti" : "atblokuoti";
+
+        bool confirmed = await JS.InvokeAsync<bool>("confirm",
+            $"Ar tikrai norite {action} naudotoją?");
+
+        if (confirmed)
+        {
+            await ChangeStatus(naudotojasId, status);
+
+            ShowNotification(
+                status == "Blokuota"
+                    ? "Naudotojas sėkmingai užblokuotas."
+                    : "Naudotojas sėkmingai atblokuotas."
+            );
+        }
+        else
+        {
+            ShowNotification(
+                status == "Blokuota"
+                    ? "Naudotojas nebuvo užblokuotas."
+                    : "Naudotojas nebuvo atblokuotas.",
+                "warning"
+            );
+        }
     }
 
     private async Task ChangeStatus(int naudotojasId, string status)
@@ -94,8 +153,21 @@
 
     private async Task ChangeRole(int naudotojasId, string newRole)
     {
+        // Get the current user to show a meaningful message
+        var user = users?.FirstOrDefault(u => u.NaudotojasId == naudotojasId);
+
+        if (user == null) return;
+
+        string oldRole = user.Role;
+
         await UserService.UpdateRoleAsync(naudotojasId, newRole);
+
         users = await UserService.GetAllAsync();
         StateHasChanged();
+
+        ShowNotification(
+            $"Naudotojo „{user.Vardas} {user.Pavarde}“ rolė pakeista iš „{oldRole}“ į „{newRole}“.",
+            "success"
+        );
     }
 }

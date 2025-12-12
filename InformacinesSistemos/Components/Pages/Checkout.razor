@@ -1,5 +1,4 @@
-﻿
-@page "/checkout"
+﻿@page "/checkout"
 @rendermode InteractiveServer
 
 @using InformacinesSistemos.Models
@@ -7,7 +6,6 @@
 @using Microsoft.AspNetCore.Components.Authorization
 @inject InformacinesSistemos.Services.IHistoryService HistoryService
 @inject InformacinesSistemos.Services.IUserService UserService
-
 @inject InformacinesSistemos.Services.ICartService CartService
 @inject InformacinesSistemos.Services.IBankPaymentService BankPaymentService
 @inject InformacinesSistemos.Services.IUserLookupService UserLookup
@@ -17,6 +15,14 @@
 <PageTitle>Apmokėjimas</PageTitle>
 
 <h2>Užsakymo apmokėjimas</h2>
+
+@* === Notification Area === *@
+@if (showNotification)
+{
+    <div class="alert alert-@notificationType" role="alert">
+        @notificationMessage
+    </div>
+}
 
 @if (!CartService.Items.Any())
 {
@@ -120,8 +126,14 @@ else
                                 <InputText @bind-Value="card.PinKodas" type="password" />
                             </label>
 
-                            @if (isProcessing) { <p class="info">Vykdomas mokėjimas, palaukite...</p> }
-                            @if (!string.IsNullOrEmpty(paymentMessage)) { <p class="@paymentStatusClass">@paymentMessage</p> }
+                            @if (isProcessing)
+                            {
+                                <p class="info">Vykdomas mokėjimas, palaukite...</p>
+                            }
+                            @if (!string.IsNullOrEmpty(paymentMessage))
+                            {
+                                <p class="@paymentStatusClass">@paymentMessage</p>
+                            }
 
                             <div class="form-actions">
                                 <button type="button" class="outline-btn" @onclick="() => showCardForm = false" disabled="@isProcessing">Atšaukti</button>
@@ -173,6 +185,25 @@ else
     private string? currentUserEmail;
     private int? currentUserId;
 
+    // === Notification fields ===
+    private bool showNotification = false;
+    private string? notificationMessage;
+    private string notificationType = "success";
+
+    private void ShowNotification(string message, string type = "success")
+    {
+        notificationMessage = message;
+        notificationType = type;
+        showNotification = true;
+
+        _ = Task.Run(async () =>
+        {
+            await Task.Delay(3000);
+            showNotification = false;
+            await InvokeAsync(StateHasChanged);
+        });
+    }
+
     private OrderForm order = new();
     private CardPaymentForm card = new();
 
@@ -200,7 +231,6 @@ else
         {
             order.Email = currentUserEmail;
 
-            // Pasiimam naudotoją iš DB, kad turėtume jo ID istorijai
             var entity = await UserService.GetByEmailAsync(currentUserEmail);
             if (entity != null)
             {
@@ -214,10 +244,8 @@ else
             }
         }
 
-        // default mokėjimo būdas
         order.PaymentMethod = PaymentKortele;
     }
-
 
     private void GoBack() => Nav.NavigateTo("/cart");
     private void GoToGames() => Nav.NavigateTo("/games");
@@ -257,10 +285,12 @@ else
         orderNumber = $"GS-{DateTime.Now:yyyyMMddHHmmss}";
         isCompleted = true;
 
+        // Show success notification
+        ShowNotification("Užsakymas sėkmingai pateiktas!");
+
         CartService.Clear();
         await InvokeAsync(StateHasChanged);
     }
-
 
     private async Task PayWithCard()
     {
@@ -307,7 +337,6 @@ else
                 return;
             }
 
-            // Vartotojo AK pagal el. paštą (privalomas šiame variante)
             if (string.IsNullOrWhiteSpace(currentUserEmail))
             {
                 paymentMessage = "Nepavyko nustatyti naudotojo el. pašto. Prisijunkite iš naujo.";
@@ -328,7 +357,7 @@ else
                 SiuntimoKaina = (decimal)Shipping,
                 Busena = "Paruoštas",
                 IsSiuntimoData = DateOnly.FromDateTime(DateTime.Today),
-                FkNaudotojasAsmensKodas = userAk, // privalomas šiam variantui
+                FkNaudotojasAsmensKodas = userAk,
                 FkApmokejimasSekaltosId = card.KortelesID,
                 FkUzsakymasSuUzsakymoId = null
             };
@@ -343,7 +372,9 @@ else
             paymentMessage = "Sėkmingai įvykdytas mokėjimas.";
             paymentStatusClass = "ok";
 
-            // ČIA – realus užsakymo patvirtinimas + įrašymas į istoriją
+            // Show notification
+            ShowNotification("Mokėjimas sėkmingai įvykdytas!");
+
             await ConfirmOrder();
 
         }

@@ -29,6 +29,12 @@
 
 </div>
 
+@if (showNotification)
+{
+    <div class="notification @notificationType">
+        @notificationMessage
+    </div>
+}
 @if (filteredGames is null)
 {
     <p>Kraunama...</p>
@@ -86,6 +92,9 @@ else
     private string? selectedType;
     private string searchText = string.Empty;
     private string? selectedSaleType;
+    private bool showNotification = false;
+    private string notificationMessage = "";
+    private string notificationType = ""; // "success" or "info"
 
     protected override async Task OnInitializedAsync()
     {
@@ -95,6 +104,7 @@ else
     private void AddToCart(Zaidimas game)
     {
         CartService.Add(game, 1);
+        ShowNotification($"„{game.Aprasymas}“ pridėtas į krepšelį!", "success");
     }
 
     private void OnSaleTypeChange(ChangeEventArgs e)
@@ -102,7 +112,19 @@ else
         selectedSaleType = e.Value?.ToString();
         ApplyFilters();
     }
+    private void ShowNotification(string message, string type = "success")
+    {
+        notificationMessage = message;
+        notificationType = type;
+        showNotification = true;
 
+        // auto hide after 3 seconds
+        _ = Task.Delay(3000).ContinueWith(_ =>
+        {
+            showNotification = false;
+            InvokeAsync(StateHasChanged);
+        });
+    }
 
     protected override async Task OnParametersSetAsync()
     {

@@ -3,10 +3,18 @@
 @using InformacinesSistemos.Models
 @inject InformacinesSistemos.Services.ICartService CartService
 @inject NavigationManager Nav
+@inject IJSRuntime JS
 
 <PageTitle>Krepšelis</PageTitle>
 
 <h2>Krepšelis</h2>
+
+@if (showNotification)
+{
+    <div class="simple-notification @notificationType">
+        @notificationMessage
+    </div>
+}
 
 @if (!CartService.Items.Any())
 {
@@ -40,7 +48,7 @@ else
                     <td>@item.Quantity</td>
                     <td>@(((game?.Kaina ?? 0) * item.Quantity).ToString("0.00")) €</td>
                     <td>
-                        <button class="link-btn remove-btn" @onclick="() => Remove(item.ZaidimoId)">
+                        <button class="link-btn remove-btn" @onclick="() => ConfirmRemoveAsync(item.ZaidimoId)">
                             Pašalinti
                         </button>
                     </td>
@@ -65,23 +73,49 @@ else
 }
 
 @code {
-    private void Remove(int gameId)
+    private bool showNotification = false;
+    private string notificationMessage = "";
+    private string notificationType = ""; // "success" or "info" or "error"
+
+    // Simpler: using browser confirm
+    private async Task ConfirmRemoveAsync(int gameId)
     {
-        CartService.Remove(gameId);
+        // Native browser confirm
+        bool confirmed = await JS.InvokeAsync<bool>("confirm", "Ar tikrai norite pašalinti šį žaidimą iš krepšelio?");
+        if (confirmed)
+        {
+            CartService.Remove(gameId);
+            ShowNotification("Žaidimas sėkmingai pašalintas.", "success");
+            // force UI update
+            await InvokeAsync(StateHasChanged);
+        }
+        else
+        {
+            ShowNotification("Veiksmas atšauktas. Žaidimas nepašalintas.", "info");
+        }
+    }
+
+    private void ShowNotification(string message, string type = "success")
+    {
+        notificationMessage = message;
+        notificationType = type;
+        showNotification = true;
+
+        // auto-hide after 3 seconds
+        _ = Task.Run(async () =>
+        {
+            await Task.Delay(3000);
+            showNotification = false;
+            await InvokeAsync(StateHasChanged);
+        });
     }
 
     private void Clear()
     {
         CartService.Clear();
+        ShowNotification("Krepšelis išvalytas.", "success");
     }
 
-    private void GoToCheckout()
-    {
-        Nav.NavigateTo("/checkout");
-    }
-
-    private void GoToGames()
-    {
-        Nav.NavigateTo("/games");
-    }
+    private void GoToCheckout() => Nav.NavigateTo("/checkout");
+    private void GoToGames() => Nav.NavigateTo("/games");
 }
