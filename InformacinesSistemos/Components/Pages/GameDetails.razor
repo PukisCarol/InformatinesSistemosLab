@@ -1,12 +1,21 @@
 ﻿@page "/games/{Id:int}"
+
 @using InformacinesSistemos.Models
+@using Microsoft.AspNetCore.Components.Authorization
+
 @inject InformacinesSistemos.Services.IGameService GameService
 @inject InformacinesSistemos.Services.ICartService CartService
-@inject NavigationManager Nav
 @inject InformacinesSistemos.Services.IReviewService ReviewService
-
+@inject NavigationManager Nav
 
 <PageTitle>Žaidimo informacija</PageTitle>
+
+@if (showNotification)
+{
+    <div class="notification @notificationType">
+        @notificationMessage
+    </div>
+}
 
 @if (isLoading)
 {
@@ -55,6 +64,7 @@ else
                 <p><strong>Trukmė:</strong> @game.Stalo.Trukme min</p>
             </div>
         }
+
         <h3>Atsiliepimai</h3>
 
         @if (reviews == null || reviews.Count == 0)
@@ -78,12 +88,24 @@ else
             </ul>
         }
 
-
         <div class="gd-actions">
-            <button class="outline-btn" @onclick="@GoBack">Grįžti</button>
-            <button class="primary-btn" @onclick="@AddToCart">
-                Į krepšelį
+            <button class="outline-btn" @onclick="@GoBack">
+                Grįžti
             </button>
+
+            <AuthorizeView>
+                <Authorized>
+                    <button class="primary-btn" @onclick="@AddToCart">
+                        Į krepšelį
+                    </button>
+                </Authorized>
+                <NotAuthorized>
+                    <button class="outline-btn"
+                            @onclick="@(() => Nav.NavigateTo("/login"))">
+                        Prisijunkite
+                    </button>
+                </NotAuthorized>
+            </AuthorizeView>
         </div>
     </div>
 }
@@ -94,41 +116,55 @@ else
     private Zaidimas? game;
     private bool isLoading = true;
 
-
     private List<Atsiliepimas>? reviews;
 
-    public string? Vardas { get; set; }
-    public string? Pavarde { get; set; }
+    private bool showNotification = false;
+    private string notificationMessage = "";
+    private string notificationType = "success";
 
     protected override async Task OnParametersSetAsync()
     {
         isLoading = true;
 
-        game = await GameService.GetByIdAsync(Id); // Load game first
+        game = await GameService.GetByIdAsync(Id);
 
         if (game != null)
         {
-            reviews = await ReviewService.GetForGameAsync(game.ZaidimoId); // THEN load reviews
+            reviews = await ReviewService.GetForGameAsync(game.ZaidimoId);
         }
 
         isLoading = false;
     }
-
-    private static string GetTypeLabel(Zaidimas g)
-        => g.Kompiuterinis != null ? "Kompiuterinis žaidimas"
-         : g.Stalo != null ? "Stalo žaidimas"
-         : "Žaidimas";
 
     private void AddToCart()
     {
         if (game != null)
         {
             CartService.Add(game, 1);
+            ShowNotification($"„{game.Aprasymas}“ pridėtas į krepšelį!", "success");
         }
+    }
+
+    private void ShowNotification(string message, string type = "success")
+    {
+        notificationMessage = message;
+        notificationType = type;
+        showNotification = true;
+
+        _ = Task.Delay(3000).ContinueWith(_ =>
+        {
+            showNotification = false;
+            InvokeAsync(StateHasChanged);
+        });
     }
 
     private void GoBack()
     {
         Nav.NavigateTo("/games");
     }
+
+    private static string GetTypeLabel(Zaidimas g)
+        => g.Kompiuterinis != null ? "Kompiuterinis žaidimas"
+         : g.Stalo != null ? "Stalo žaidimas"
+         : "Žaidimas";
 }

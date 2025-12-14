@@ -1,11 +1,13 @@
 ﻿@page "/games"
 @rendermode InteractiveServer
+
 @using InformacinesSistemos.Models
 @using Microsoft.AspNetCore.WebUtilities
-@inject InformacinesSistemos.Services.IGameService GameService
-@inject NavigationManager Nav
-@inject InformacinesSistemos.Services.ICartService CartService
+@using Microsoft.AspNetCore.Components.Authorization
 
+@inject InformacinesSistemos.Services.IGameService GameService
+@inject InformacinesSistemos.Services.ICartService CartService
+@inject NavigationManager Nav
 
 <PageTitle>Žaidimai</PageTitle>
 
@@ -26,7 +28,6 @@
         <option value="Pardavimas">Tik parduodami</option>
         <option value="Nuoma">Tik nuomojami</option>
     </select>
-
 </div>
 
 @if (showNotification)
@@ -35,6 +36,7 @@
         @notificationMessage
     </div>
 }
+
 @if (filteredGames is null)
 {
     <p>Kraunama...</p>
@@ -62,24 +64,37 @@ else
                             @: (pardavimas)
                         }
                     </span>
-
                 </div>
+
                 <h5>@g.Aprasymas</h5>
+
                 <div class="game-meta">
                     <span>@g.Kurejas |</span>
                     <span>@g.ZaidejuSkaicius žaidėjai |</span>
                     <span>@($"Reitingas: {g.Reitingas:0.0}")</span>
                 </div>
+
                 <div class="game-actions">
-                    <button class="outline-btn small-btn" @onclick="@(() => Nav.NavigateTo($"/games/{g.ZaidimoId}"))">
+                    <button class="outline-btn small-btn"
+                            @onclick="@(() => Nav.NavigateTo($"/games/{g.ZaidimoId}"))">
                         Peržiūrėti
                     </button>
-                    <button class="primary-btn small-btn" @onclick="@(() => AddToCart(g))">
-                        Į krepšelį
-                    </button>
+
+                    <AuthorizeView>
+                        <Authorized>
+                            <button class="primary-btn small-btn"
+                                    @onclick="@(() => AddToCart(g))">
+                                Į krepšelį
+                            </button>
+                        </Authorized>
+                        <NotAuthorized>
+                            <button class="outline-btn small-btn"
+                                    @onclick="@(() => Nav.NavigateTo("/login"))">
+                                Prisijunkite
+                            </button>
+                        </NotAuthorized>
+                    </AuthorizeView>
                 </div>
-
-
             </div>
         }
     </div>
@@ -90,45 +105,21 @@ else
     private List<Zaidimas>? filteredGames;
 
     private string? selectedType;
-    private string searchText = string.Empty;
     private string? selectedSaleType;
+    private string searchText = string.Empty;
+
     private bool showNotification = false;
     private string notificationMessage = "";
-    private string notificationType = ""; // "success" or "info"
+    private string notificationType = ""; // success / info
 
     protected override async Task OnInitializedAsync()
     {
         await LoadGamesFromService();
         ApplyFilters();
     }
-    private void AddToCart(Zaidimas game)
-    {
-        CartService.Add(game, 1);
-        ShowNotification($"„{game.Aprasymas}“ pridėtas į krepšelį!", "success");
-    }
-
-    private void OnSaleTypeChange(ChangeEventArgs e)
-    {
-        selectedSaleType = e.Value?.ToString();
-        ApplyFilters();
-    }
-    private void ShowNotification(string message, string type = "success")
-    {
-        notificationMessage = message;
-        notificationType = type;
-        showNotification = true;
-
-        // auto hide after 3 seconds
-        _ = Task.Delay(3000).ContinueWith(_ =>
-        {
-            showNotification = false;
-            InvokeAsync(StateHasChanged);
-        });
-    }
 
     protected override async Task OnParametersSetAsync()
     {
-        // jei ateisim su ?type=pc ir pan.
         var uri = Nav.ToAbsoluteUri(Nav.Uri);
         var query = QueryHelpers.ParseQuery(uri.Query);
 
@@ -150,8 +141,6 @@ else
         try
         {
             allGames = await GameService.GetAllAsync();
-
-            Console.WriteLine($"Loaded games: {(allGames == null ? "NULL" : allGames.Count.ToString())}");
         }
         catch (Exception ex)
         {
@@ -169,28 +158,18 @@ else
 
         if (!string.IsNullOrWhiteSpace(selectedType))
         {
-            if (selectedType == "pc")
+            query = selectedType switch
             {
-                query = query.Where(g => g.Kompiuterinis != null);
-            }
-            else if (selectedType == "board")
-            {
-                query = query.Where(g => g.Stalo != null);
-            }
+                "pc" => query.Where(g => g.Kompiuterinis != null),
+                "board" => query.Where(g => g.Stalo != null),
+                _ => query
+            };
         }
 
         if (!string.IsNullOrEmpty(selectedSaleType))
         {
-            if (selectedSaleType == "Pardavimas")
-            {
-                query = query.Where(g => g.PardavimoTipas == "Pardavimas");
-            }
-            else if (selectedSaleType == "Nuoma")
-            {
-                query = query.Where(g => g.PardavimoTipas == "Nuoma");
-            }
+            query = query.Where(g => g.PardavimoTipas == selectedSaleType);
         }
-
 
         if (!string.IsNullOrWhiteSpace(searchText))
         {
@@ -216,8 +195,33 @@ else
         ApplyFilters();
     }
 
+    private void OnSaleTypeChange(ChangeEventArgs e)
+    {
+        selectedSaleType = e.Value?.ToString();
+        ApplyFilters();
+    }
+
+    private void AddToCart(Zaidimas game)
+    {
+        CartService.Add(game, 1);
+        ShowNotification($"„{game.Aprasymas}“ pridėtas į krepšelį!", "success");
+    }
+
+    private void ShowNotification(string message, string type = "success")
+    {
+        notificationMessage = message;
+        notificationType = type;
+        showNotification = true;
+
+        _ = Task.Delay(3000).ContinueWith(_ =>
+        {
+            showNotification = false;
+            InvokeAsync(StateHasChanged);
+        });
+    }
+
     private static string GetTypeLabel(Zaidimas g)
         => g.Kompiuterinis != null ? "Kompiuterinis"
          : g.Stalo != null ? "Stalo"
-                                  : "Kitas";
+         : "Kitas";
 }
