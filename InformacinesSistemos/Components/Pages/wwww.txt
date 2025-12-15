@@ -1,0 +1,30 @@
+﻿@page "/admin/reports"
+@using Microsoft.AspNetCore.Components.Authorization
+
+<PageTitle>Sistemos ataskaitos</PageTitle>
+
+<AuthorizeView Roles="Admin">
+    <Authorized>
+        <h2>Sistemos ataskaitos</h2>
+
+        <p>
+            Šis puslapis skirtas administratoriui – čia gali būti generuojamos
+            ataskaitos apie:
+        </p>
+
+        <ul>
+            <li>Užsakymų skaičių per tam tikrą laikotarpį;</li>
+            <li>Populiariausius žaidimus (pagal užsakymus ar reitingus);</li>
+            <li>Aktyvius ir blokuotus naudotojus;</li>
+            <li>Pateiktų nusiskundimų ir atsiliepimų statistiką.</li>
+        </ul>
+
+        <p>
+            Šiuo metu ataskaitų duomenys yra demonstraciniai (nėra realios DB),
+            tačiau puslapis paruoštas išplėtimui pagal projekto reikalavimus.
+        </p>
+    </Authorized>
+    <NotAuthorized>
+        <p>Šis puslapis prieinamas tik administratoriams.</p>
+    </NotAuthorized>
+</AuthorizeView>

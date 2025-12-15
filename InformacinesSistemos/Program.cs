@@ -41,6 +41,22 @@ builder.Services.AddScoped<IReviewService, PgReviewService>();
 builder.Services.AddScoped<IAIService, GroqAIService>();
 builder.Services.AddHttpClient(); // needed for HTTP requests
 
+
+
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+builder.Services.AddScoped<IReportsService, ReportsService>();
+
+// Connection string iš appsettings.json
+builder.Services.AddDbContext<ApplicationDbContext>(options =>
+    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+builder.Services.AddRazorPages();
+builder.Services.AddServerSideBlazor();
+
+
+
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 

@@ -1,5 +1,8 @@
 ﻿@page "/admin/reports"
 @using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.EntityFrameworkCore
+@inject ApplicationDbContext _db  // Jei naudoji tiesiogiai, bet dabar pereinam prie serviso
+@inject IReportsService ReportsService  // Pridėtas inject serviso
 
 <PageTitle>Sistemos ataskaitos</PageTitle>
 
@@ -8,8 +11,7 @@
         <h2>Sistemos ataskaitos</h2>
 
         <p>
-            Šis puslapis skirtas administratoriui – čia gali būti generuojamos
-            ataskaitos apie:
+            Šis puslapis skirtas administratoriui – čia gali būti generuojamos ataskaitos apie:
         </p>
 
         <ul>
@@ -19,12 +21,88 @@
             <li>Pateiktų nusiskundimų ir atsiliepimų statistiką.</li>
         </ul>
 
-        <p>
-            Šiuo metu ataskaitų duomenys yra demonstraciniai (nėra realios DB),
-            tačiau puslapis paruoštas išplėtimui pagal projekto reikalavimus.
-        </p>
+        <hr />
+
+        <h3>Atsiliepimai pagal žaidimo išleidimo metus</h3>
+
+        @if (_report is null)
+        {
+            <p>Kraunama...</p>
+        }
+        else if (_report.MetuStatistika.Count == 0)
+        {
+            <p>Duomenų nerasta.</p>
+        }
+        else
+        {
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Metai</th>
+                        <th>Žaidimų kiekis</th>
+                        <th>Atsiliepimų kiekis</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var row in _report.MetuStatistika)
+                    {
+                        <tr>
+                            <td>@row.Metai</td>
+                            <td>@row.ZaidimuKiekis</td>
+                            <td>@row.AtsiliepimuKiekis</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+
+        <hr />
+
+        <h3>Žaidimai pagal žanrą</h3>
+
+        @if (_report.ZaidimaiPagalZanra.Count == 0)
+        {
+            <p>Duomenų nerasta.</p>
+        }
+        else
+        {
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Žanras</th>
+                        <th>Žaidimų kiekis</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var row in _report.ZaidimaiPagalZanra)
+                    {
+                        <tr>
+                            <td>@row.Pavadinimas</td>
+                            <td>@row.ZaidimuKiekis</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
     </Authorized>
     <NotAuthorized>
         <p>Šis puslapis prieinamas tik administratoriams.</p>
     </NotAuthorized>
 </AuthorizeView>
+
+@code {
+    private ReportsVm? _report;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _report = await ReportsService.GetReportAsync();
+        }
+        catch (Exception ex)
+        {
+            // Čia gali pridėti loggingą, pvz., Console.WriteLine(ex.Message);
+            _report = new ReportsVm { MetuStatistika = new List<YearlyStatDto>(), ZaidimaiPagalZanra = new List<GenreCountDto>() };
+        }
+    }
+}
