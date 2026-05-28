@@ -1,6 +1,6 @@
 # 🎮 Internetinė žaidimų parduotuvė
 
-Universitetinis komandos projektas – vaizdo ir stalo žaidimų elektroninė parduotuvė su pirkimo, pardavimo ir nuomos funkcijomis. Sistema sujungia e-komercijos, naudotojų valdymo ir bendruomenės funkcionalumus vienoje platformoje.
+Universitetinis komandos projektas – vaizdo ir stalo žaidimų elektroninė parduotuvė su pirkimo, pardavimo ir nuomos funkcijomis. Projektas apėmė ne tik sistemos kūrimą, bet ir pilną analizę, planavimą, UML diagramų sudarymą, reikalavimų modeliavimą bei sistemos architektūros projektavimą.
 
 Tikslas yra sukurti vieningą platformą, kurioje naudotojai galėtų:
 - pirkti ir nuomoti žaidimus,
@@ -21,6 +21,19 @@ Tikslas yra sukurti vieningą platformą, kurioje naudotojai galėtų:
 - Administratoriaus ir moderatoriaus rolės
 - Ataskaitų formavimas ir naudotojų valdymas
 
+## 📐 Projekto analizė ir planavimas
+
+Projekto metu buvo atliekamas:
+- Sistemos planavimas ir analizė
+- Reikalavimų specifikacija
+- Panaudojimo atvejų (Use Case) diagramos
+- Sekų diagramos
+- Analizės diagramos
+- Esybių-klasių (ER/Class) diagramos
+- Sistemos architektūros projektavimas
+- Duomenų bazės projektavimas
+- Funkcijų hierarchijos modeliavimas
+  
 ## 🛠️ Naudotos technologijos
 
 - C#
